@@ -91,14 +91,31 @@ linear elastic fracture mechanics and is valid within the **K-dominant zone**.
 
 ---
 
-### Direct Entry (Single Evaluation)
+### Integrating with Siemens NX output
+The `--nx-csv` mode pairs upper/lower crack-face nodes and sweeps the near-tip
+region to identify a K_I plateau.
 
-```bash
-python src/dcm.py \
-  --material-E 7.31e10 \    # Young's modulus (Pa)
-  --material-nu 0.33 \      # Poisson's ratio (retained for completeness)
-  --r 1.0e-3 \              # distance behind crack tip (m)
-  --uy-upper 2.0e-5 \       # upper crack-face displacement (m)
-  --uy-lower -2.0e-5        # lower crack-face displacement (m)
+1. Export crack-face nodal displacements from Siemens NX into a CSV containing
+   at minimum the columns `x`, `y`, and `uy`. Optional columns `ux` and
+   `node_id` are preserved in the output.
+2. Specify the crack tip coordinates and pairing tolerances:
+   ```bash
+   python src/dcm.py \
+     --material-E 7.3e10 \
+     --material-nu 0.33 \
+     --nx-csv nx_nodes.csv \
+     --x-tip 0.0 --y-tip 0.0 \
+     --y-band 0.02 --x-match-tol 0.02 \
+     --r-min 0.04 --r-max 2.0 \
+     --plot
+   ```
+3. The script pairs nodes, filters them in the requested `r` window, computes
+   K_I for each pair using the E'/8 COD relation, and writes
+   `dcm_pairs_and_KI.csv` next to the input file. The log reports a robust
+   plateau estimate (median of the middle 50% of r samples). Set `--plot` to
+   visualize the K_I vs. r curve.
 
-
+## Next Steps
+- Add parsing helpers for Siemens NX native output formats.
+- Extend the calculator to Mode II/III and mixed-mode interaction integrals.
+- Integrate the SIF pipeline with the machine learning crack-growth models.
