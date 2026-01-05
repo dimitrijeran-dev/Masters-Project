@@ -117,5 +117,4 @@ region to identify a K_I plateau.
 
 ## Next Steps
 - Add parsing helpers for Siemens NX native output formats.
-- Extend the calculator to Mode II/III and mixed-mode interaction integrals.
 - Integrate the SIF pipeline with the machine learning crack-growth models.
