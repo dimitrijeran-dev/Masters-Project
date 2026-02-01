@@ -11,11 +11,16 @@ This version supports three workflows:
 3) Automatic pairing of upper/lower crack-face nodes exported from Siemens NX
    (or similar) followed by a radial sweep to estimate the K_I plateau.
 
-NEW in this version:
+Features:
 - Interactive prompts: you can run `./src/dcm.py` and it will ask for missing inputs.
 - Robust NX column mapping (handles "Node ID", "X Coord", "Y Coord", "Y").
 - Units handling for NX exports (mm or m). Recommended: export in mm and set --nx-units mm
   (default), and the script converts to meters internally so K is in MPa*sqrt(m).
+- Optional automatic y_tip / x_tip detection (--auto-tip).
+- NEW: Automatic r-window selection (r_min / r_max) from the paired K_I(r) data:
+    * If user does not provide r-min and/or r-max, the code selects a contiguous
+      “flattest” window of K_I(r) via a sliding linear fit (min slope + low scatter).
+    * This removes the need for default r-min/r-max values and adapts per crack length.
 """
 
 from __future__ import annotations
@@ -131,7 +136,6 @@ def compute_mode_i_from_cod(Eprime: float, cod: float, r: float) -> float:
 
 
 def _format_result(result: ModeIResult) -> str:
-    # If everything is SI (m, Pa), this prints MPa*sqrt(m) correctly.
     unit = "MPa*sqrt(m)"
     sif_mpa = result.sif / 1e6
     return (
@@ -170,7 +174,7 @@ def _read_displacements(path: Path) -> List[CrackFaceDisplacement]:
 def _parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Compute Mode I SIF via DCM (interactive if missing args).")
 
-    # Material (now optional -> interactive prompts if missing)
+    # Material (optional -> interactive prompts if missing)
     parser.add_argument("--material-E", type=float, required=False, help="Young's modulus in Pa (e.g., 7.31e10)")
     parser.add_argument("--material-nu", type=float, required=False, help="Poisson ratio (e.g., 0.33)")
     parser.add_argument("--plane-strain", action="store_true", help="Use plane strain (default plane stress)")
@@ -185,17 +189,34 @@ def _parse_args(argv: Optional[Iterable[str]] = None) -> argparse.Namespace:
     # NX node pairing
     nx = parser.add_argument_group("NX node pairing")
     nx.add_argument("--nx-csv", type=Path, help="NX CSV (e.g., Node ID, X Coord, Y Coord, Y)")
-    nx.add_argument("--x-tip", type=float, help="Crack tip x-coordinate (model units)")
-    nx.add_argument("--y-tip", type=float, help="Crack tip y-coordinate (model units)")
+    nx.add_argument("--x-tip", type=float, help="Crack tip x-coordinate (NX units). Optional if --auto-tip.")
+    nx.add_argument("--y-tip", type=float, help="Crack tip y-coordinate / crack line (NX units). Optional if --auto-tip.")
     nx.add_argument("--nx-units", choices=["mm", "m"], default="mm",
                     help="Units used in NX export for x,y,uy. Default: mm (converted to m internally).")
     nx.add_argument("--y-band", type=float, default=None,
-                    help="Half-height band about crack line for face selection (model units)")
+                    help="Half-height band about crack line for face selection (NX units)")
     nx.add_argument("--x-match-tol", type=float, default=None,
-                    help="Maximum |x_upper - x_lower| for pairing (model units)")
-    nx.add_argument("--r-min", type=float, default=None, help="Minimum r to include (model units)")
-    nx.add_argument("--r-max", type=float, default=None, help="Maximum r to include (model units)")
+                    help="Maximum |x_upper - x_lower| for pairing (NX units)")
+    nx.add_argument("--r-min", type=float, default=None,
+                    help="_toggle_ manual r-min. If omitted, auto-window selection is used.")
+    nx.add_argument("--r-max", type=float, default=None,
+                    help="toggle manual r-max. If omitted, auto-window selection is used.")
     nx.add_argument("--plot", action="store_true", help="Plot K_I vs r to identify plateau")
+
+    # Auto-tip controls
+    nx.add_argument("--auto-tip", action="store_true",
+                    help="Auto-detect y_tip and x_tip from the NX export (if not provided).")
+    nx.add_argument("--auto-y-bin", type=float, default=None,
+                    help=("Y bin size (NX units) for auto-detecting y_tip from densest y-cluster. "
+                          "If omitted, a conservative default is used based on nx-units."))
+
+    # Auto r-window selection controls
+    nx.add_argument("--auto-r-window", action="store_true",
+                    help="Auto-select r_min/r_max from data even if user provided them (overrides).")
+    nx.add_argument("--auto-window-frac", type=float, default=0.35,
+                    help="Fraction of points used per sliding window when auto-selecting r-range (default 0.35).")
+    nx.add_argument("--auto-window-minpts", type=int, default=8,
+                    help="Minimum points per window when auto-selecting r-range (default 8).")
 
     return parser.parse_args(argv)
 
@@ -224,12 +245,10 @@ def _load_nodes(csv_path: Path, nx_units: str) -> "pd.DataFrame":
                 return norm[c]
         raise ValueError(f"Missing one of {cands}. Found columns: {list(df_raw.columns)}")
 
-    # Handle your NX export headers
     col_node = pick("node id", "node_id", "nid", "node")
-    col_x    = pick("x coord", "x", "x coordinate", "xcoord")
-    col_y    = pick("y coord", "y coordinate", "ycoord")
-    # Displacement Uy is often labeled just "Y" in NX exports
-    col_uy   = pick("uy", "u_y", "y", "displacement y")
+    col_x = pick("x coord", "x", "x coordinate", "xcoord")
+    col_y = pick("y coord", "y coordinate", "ycoord")
+    col_uy = pick("uy", "u_y", "y", "displacement y")
 
     out = pd.DataFrame(
         {
@@ -240,7 +259,6 @@ def _load_nodes(csv_path: Path, nx_units: str) -> "pd.DataFrame":
         }
     )
 
-    # Convert to meters if needed (recommended for correct MPa*sqrt(m))
     if nx_units == "mm":
         mm_to_m = 1e-3
         out["x"] *= mm_to_m
@@ -250,10 +268,93 @@ def _load_nodes(csv_path: Path, nx_units: str) -> "pd.DataFrame":
     return out
 
 
+# -----------------------------
+# Auto-detect helpers (y_tip and x_tip)
+# -----------------------------
+def _infer_y_tip(df: "pd.DataFrame", y_band: float, y_bin: float) -> float:
+    import numpy as np
+
+    if df.empty:
+        raise ValueError("Cannot infer y_tip from empty dataframe.")
+
+    ys = df["y"].to_numpy(dtype=float)
+    yq = np.round(ys / y_bin) * y_bin
+    vals, counts = np.unique(yq, return_counts=True)
+    y_tip = float(vals[int(np.argmax(counts))])
+
+    near = np.abs(ys - y_tip) <= y_band
+    logging.info("Auto y_tip: densest y-bin center = %.6g (near-band count=%d)", y_tip, int(np.sum(near)))
+    return y_tip
+
+
+def _infer_x_tip_from_band(df: "pd.DataFrame", y_tip: float, y_band: float) -> float:
+    import numpy as np
+
+    band = df[np.abs(df["y"] - y_tip) <= y_band].copy()
+    if band.empty:
+        raise ValueError("Cannot infer x_tip: no nodes found within y-band around inferred y_tip.")
+    x_tip = float(np.max(band["x"].to_numpy(dtype=float)))
+    logging.info("Auto x_tip: max x in y-band = %.6g", x_tip)
+    return x_tip
+
+
+# -----------------------------
+# Auto r-window selection (from K(r) itself)
+# -----------------------------
+def _auto_r_window_from_K(paired: "pd.DataFrame", r_col: str = "r", k_col: str = "KI",
+                          frac_window: float = 0.35, min_points: int = 8) -> tuple[float, float]:
+    """
+    Choose r_min and r_max from the data by selecting the contiguous window where K(r)
+    is flattest (minimum slope + low scatter) on a sliding linear fit.
+
+    Returns (r_min, r_max) in the same units as r_col (meters internally).
+    """
+    import numpy as np
+
+    p = paired[[r_col, k_col]].dropna().sort_values(r_col).reset_index(drop=True)
+    r = p[r_col].to_numpy(dtype=float)
+    k = p[k_col].to_numpy(dtype=float)
+
+    n = len(r)
+    if n < max(min_points, 5):
+        raise ValueError("Not enough paired points to auto-select r window.")
+
+    w = int(max(min_points, round(frac_window * n)))
+    w = min(w, n)
+
+    best_i = 0
+    best_score = None
+
+    r_span = float(r[-1] - r[0]) if n > 1 else 1.0
+
+    for i in range(0, n - w + 1):
+        rr = r[i:i + w]
+        kk = k[i:i + w]
+        A = np.vstack([rr, np.ones_like(rr)]).T
+        slope, _ = np.linalg.lstsq(A, kk, rcond=None)[0]
+
+        k_med = float(np.median(kk))
+        scatter = float(np.std(kk) / (abs(k_med) + 1e-30))
+
+        # Dimensionless-ish slope metric + scatter penalty
+        slope_norm = abs(float(slope)) * r_span / (abs(k_med) + 1e-30)
+        score = slope_norm + 0.5 * scatter
+
+        if best_score is None or score < best_score:
+            best_score = score
+            best_i = i
+
+    r_min = float(r[best_i])
+    r_max = float(r[best_i + w - 1])
+    return r_min, r_max
+
+
+# -----------------------------
+# Pairing logic
+# -----------------------------
 def _pair_faces_by_x(df: "pd.DataFrame", x_tip: float, y_tip: float, y_band: float, x_match_tol: float) -> "pd.DataFrame":
     import numpy as np
 
-    # Select nodes within a band around the crack line (y ≈ y_tip)
     band = df[np.abs(df["y"] - y_tip) <= y_band].copy()
     upper = band[band["y"] > y_tip].copy()
     lower = band[band["y"] < y_tip].copy()
@@ -300,7 +401,7 @@ def _pair_faces_by_x(df: "pd.DataFrame", x_tip: float, y_tip: float, y_band: flo
                 }
             )
 
-    paired = df.__class__(pairs)  # pandas DataFrame
+    paired = df.__class__(pairs)
     logging.info("Paired node rows: %s", len(paired))
     return paired
 
@@ -314,54 +415,99 @@ def _process_nx_nodes(args: argparse.Namespace, material: Material) -> int:
     if not args.nx_csv.exists():
         raise SystemExit(f"NX CSV not found: {args.nx_csv}")
 
-    # Prompt for missing NX params
-    if args.x_tip is None:
-        args.x_tip = _prompt_float("Crack tip x-coordinate (NX units)")
-    if args.y_tip is None:
-        args.y_tip = _prompt_float("Crack tip y-coordinate (NX units)")
-
-    # Default band/tols depend on units
-    # If nx_units == mm, we convert to meters, so defaults should be in meters too.
+    # Prompt for missing tolerances (needed for pairing + auto-tip)
     if args.y_band is None:
         args.y_band = _prompt_float("y-band (half-height band about crack line)", default=0.05)
     if args.x_match_tol is None:
         args.x_match_tol = _prompt_float("x-match-tol (pairing tolerance)", default=0.05)
-    if args.r_min is None:
-        args.r_min = _prompt_float("r-min (distance behind tip)", default=0.2)
-    if args.r_max is None:
-        args.r_max = _prompt_float("r-max (distance behind tip)", default=2.0)
 
-    # If user said NX units are mm, convert all those inputs from mm->m to match converted data
-    if args.nx_units == "mm":
-        mm_to_m = 1e-3
-        args.x_tip *= mm_to_m
-        args.y_tip *= mm_to_m
-        args.y_band *= mm_to_m
-        args.x_match_tol *= mm_to_m
-        args.r_min *= mm_to_m
-        args.r_max *= mm_to_m
-
+    # Load nodes (converted to meters if nx_units == mm)
     df = _load_nodes(args.nx_csv, nx_units=args.nx_units)
 
-    # Only consider nodes behind the tip (x <= x_tip) for r = x_tip - x
-    df = df[df["x"] <= args.x_tip].copy()
+    # Convert tolerances + optional x_tip/y_tip to meters if user entered in mm
+    if args.nx_units == "mm":
+        mm_to_m = 1e-3
+        args.y_band *= mm_to_m
+        args.x_match_tol *= mm_to_m
+        if args.x_tip is not None:
+            args.x_tip *= mm_to_m
+        if args.y_tip is not None:
+            args.y_tip *= mm_to_m
+        if args.auto_y_bin is not None:
+            args.auto_y_bin *= mm_to_m
 
-    paired = _pair_faces_by_x(df, args.x_tip, args.y_tip, args.y_band, args.x_match_tol)
+    # Auto-tip (fills missing; does not override user-provided)
+    if args.auto_tip:
+        if args.auto_y_bin is None:
+            # Default y-bin in meters: 0.01 mm -> 1e-5 m
+            args.auto_y_bin = 1e-5
+
+        if args.y_tip is None:
+            args.y_tip = _infer_y_tip(df, y_band=float(args.y_band), y_bin=float(args.auto_y_bin))
+        if args.x_tip is None:
+            args.x_tip = _infer_x_tip_from_band(df, y_tip=float(args.y_tip), y_band=float(args.y_band))
+
+        logging.info("Using (auto) y_tip = %.6g m, x_tip = %.6g m", float(args.y_tip), float(args.x_tip))
+
+    # If not auto, prompt for missing tips
+    if args.x_tip is None:
+        args.x_tip = _prompt_float("Crack tip x-coordinate (NX units)")
+        if args.nx_units == "mm":
+            args.x_tip *= 1e-3
+    if args.y_tip is None:
+        args.y_tip = _prompt_float("Crack tip y-coordinate (NX units)")
+        if args.nx_units == "mm":
+            args.y_tip *= 1e-3
+
+    # Only consider nodes behind the tip
+    df = df[df["x"] <= float(args.x_tip)].copy()
+
+    paired = _pair_faces_by_x(df, float(args.x_tip), float(args.y_tip), float(args.y_band), float(args.x_match_tol))
     if paired.empty:
         raise SystemExit("No upper/lower face node pairs found. Adjust y-band or x-match-tol.")
 
-    paired["r"] = (args.x_tip - paired["x"]).astype(float)
-    paired = paired[(paired["r"] >= args.r_min) & (paired["r"] <= args.r_max)].copy()
-    if paired.empty:
-        raise SystemExit("No pairs remain after r-range filtering. Adjust r-min/r-max.")
+    # Compute r, COD, KI for all available pairs (no r-filter yet)
+    paired["r"] = (float(args.x_tip) - paired["x"]).astype(float)
+    paired = paired[paired["r"] > 0].copy()
 
     Eprime = material.effective_modulus()
     paired["cod"] = paired["uy_upper"] - paired["uy_lower"]
     paired["KI"] = paired.apply(lambda row: compute_mode_i_from_cod(Eprime, row["cod"], row["r"]), axis=1)
-
     paired.sort_values("r", inplace=True)
-    logging.info("Sample (r, COD, K_I):\n%s", paired[["r", "cod", "KI", "dx_match"]].head(10))
 
+    # --- Auto-select r-window if user did not provide it, or if --auto-r-window set ---
+    do_auto_window = args.auto_r_window or (args.r_min is None) or (args.r_max is None)
+
+    # Convert user-provided r-min/r-max to meters if nx_units == mm (they're in NX units)
+    # But only if they exist and auto-window won't override them.
+    if args.nx_units == "mm" and not args.auto_r_window:
+        if args.r_min is not None:
+            args.r_min *= 1e-3
+        if args.r_max is not None:
+            args.r_max *= 1e-3
+
+    if do_auto_window:
+        rmin_auto, rmax_auto = _auto_r_window_from_K(
+            paired,
+            frac_window=float(args.auto_window_frac),
+            min_points=int(args.auto_window_minpts),
+        )
+        logging.info("Auto-selected r-window from data: r_min=%.6g m, r_max=%.6g m", rmin_auto, rmax_auto)
+        args.r_min = rmin_auto
+        args.r_max = rmax_auto
+    else:
+        # If user specified both, enforce them
+        if args.r_min is None or args.r_max is None:
+            raise SystemExit("Internal error: expected r_min and r_max to be set here.")
+
+    # Apply r-window
+    paired_win = paired[(paired["r"] >= float(args.r_min)) & (paired["r"] <= float(args.r_max))].copy()
+    if paired_win.empty:
+        raise SystemExit("No pairs remain after r-range filtering. Auto-window failed or r-range too tight.")
+
+    logging.info("Sample (r, COD, K_I) within chosen window:\n%s", paired_win[["r", "cod", "KI", "dx_match"]].head(10))
+
+    # Plot (optionally annotate window)
     if args.plot:
         import matplotlib
         matplotlib.use("Agg")  # headless-safe
@@ -369,6 +515,8 @@ def _process_nx_nodes(args: argparse.Namespace, material: Material) -> int:
 
         plt.figure()
         plt.plot(paired["r"], paired["KI"] / 1e6, marker="o")
+        # plt.axvline(float(args.r_min), linestyle="--")
+        # plt.axvline(float(args.r_max), linestyle="--")
         plt.xlabel("r (m)  [distance behind tip]")
         plt.ylabel("K_I (MPa*sqrt(m))")
         plt.grid(True)
@@ -379,18 +527,22 @@ def _process_nx_nodes(args: argparse.Namespace, material: Material) -> int:
         plt.savefig(plot_path, dpi=200)
         logging.info("Saved plot to %s", plot_path)
 
+    # Plateau estimate on the chosen window: median (robust)
+    KI_est = float(np.median(paired_win["KI"]))
+    logging.info(
+        "Plateau estimate (median over auto-window): K_I ≈ %.6g Pa*sqrt(m) (%.3f MPa*sqrt(m))",
+        KI_est,
+        KI_est / 1e6,
+    )
 
-    # Plateau estimate: median of middle 50%
-    n = len(paired)
-    lo = int(0.25 * n)
-    hi = int(0.75 * n)
-    KI_est = float(np.median(paired["KI"].iloc[lo:hi]))
-    logging.info("Plateau estimate (median middle 50%%): K_I ≈ %.6g Pa*sqrt(m) (%.3f MPa*sqrt(m))", KI_est, KI_est / 1e6)
+    # Output full paired file + chosen window file
+    out_all = args.nx_csv.with_name(f"dcm_{args.nx_csv.stem}_pairs_and_KI_all.csv")
+    paired.to_csv(out_all, index=False)
+    logging.info("Wrote full paired results to %s", out_all)
 
-    # Output file (avoid overwriting across crack lengths)
-    out_path = args.nx_csv.with_name(f"dcm_{args.nx_csv.stem}_pairs_and_KI.csv")
-    paired.to_csv(out_path, index=False)
-    logging.info("Wrote paired results to %s", out_path)
+    out_win = args.nx_csv.with_name(f"dcm_{args.nx_csv.stem}_pairs_and_KI_window.csv")
+    paired_win.to_csv(out_win, index=False)
+    logging.info("Wrote windowed results to %s", out_win)
 
     return 0
 
@@ -423,7 +575,16 @@ def main(argv: Optional[Iterable[str]] = None) -> int:
             p = _prompt_str("Path to NX CSV file (export from NX)")
             args.nx_csv = Path(p)
             args.nx_units = _prompt_str("NX units (mm or m)", default="mm").lower()
+            args.auto_tip = _prompt_bool("Auto-detect crack tip (x_tip/y_tip) from CSV?", default=True)
             args.plot = _prompt_bool("Plot K_I vs r?", default=True)
+
+            # Auto-window by default in interactive mode
+            args.auto_r_window = _prompt_bool("Auto-select r_min/r_max from K(r)?", default=True)
+
+            # If user turns off auto-window, allow manual entry
+            if not args.auto_r_window:
+                args.r_min = _prompt_float("r-min (NX units)")
+                args.r_max = _prompt_float("r-max (NX units)")
 
         elif choice == "2":
             p = _prompt_str("Path to CSV with r_m, uy_upper_m, uy_lower_m")
