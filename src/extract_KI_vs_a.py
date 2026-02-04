@@ -18,6 +18,7 @@ import argparse
 from pathlib import Path
 import pandas as pd
 import numpy as np
+import matplotlib.pyplot as plt
 
 
 def plateau_estimate(df: pd.DataFrame, frac_lo: float = 0.25, frac_hi: float = 0.75) -> float:
@@ -92,6 +93,23 @@ def main() -> int:
             "KI_Pa_sqrt_m": KI_est,
             "KI_MPa_sqrt_m": KI_est / 1e6,
         })
+
+    # Build sorted output table first
+    out = pd.DataFrame(rows).sort_values("a_mm").reset_index(drop=True)
+
+    # Plot K_I vs a using vectors (not scalars)
+    x = out["a_mm"].to_numpy()
+    y = out["KI_MPa_sqrt_m"].to_numpy()
+
+    plt.figure()
+    plt.plot(x, y, marker="o", linewidth=1.5)
+    plt.xlabel("crack length a (mm)")
+    plt.ylabel("K_I (MPa·√m)")
+    plt.title("Extracted K_I vs crack length from DCM output")
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(args.out.with_suffix(".png"), dpi=200)
+    print(f"Wrote plot: {args.out.with_suffix('.png').resolve()}")
 
     out = pd.DataFrame(rows).sort_values("a_mm").reset_index(drop=True)
     out.to_csv(args.out, index=False)
