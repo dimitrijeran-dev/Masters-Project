@@ -9,7 +9,7 @@ What this script does:
 4) Export:
    - mesh (.msh)
    - mesh plot (.png)
-   - nodal displacement CSV (node_id, x, y, ux, uy) for your DCM post-processing
+   - nodal displacement CSV (node_id, x, y, ux, uy) for DCM post-processing
 
 Notes:
 - Units: SI (m, Pa). Traction is in Pa. Thickness in m.
@@ -65,7 +65,7 @@ class MaterialCfg:
 @dataclass
 class LoadingCfg:
     type: str
-    traction_right: float
+    traction_pa: float
     fix_left: bool
     fix_left_y: bool
 
@@ -528,7 +528,7 @@ def main() -> int:
             "Check Gmsh physical groups or bounding-box selection."
         )
 
-    f = build_load_vector_traction(points, right_lines, cfg.loading.traction_right, t, direction="RIGHT")
+    f = build_load_vector_traction(points, right_lines, cfg.loading.traction_pa, t, direction="RIGHT")
 
     # 5) Dirichlet BCs on LEFT edge
     fixed_dofs: List[int] = []
