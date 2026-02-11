@@ -163,7 +163,7 @@ def build_mesh_gmsh(cfg: Config, out_msh: Path) -> float:
 
     # Boundary physical groups via bounding boxes
     # IMPORTANT: add PhysicalGroups for curves so meshio can preserve gmsh:physical tags for line elements.
-    eps = 1e-8
+    eps = 1e-6
     left_curves = gmsh.model.getEntitiesInBoundingBox(-eps, -H / 2 - eps, -eps, eps, H / 2 + eps, eps, 1)
     right_curves = gmsh.model.getEntitiesInBoundingBox(W - eps, -H / 2 - eps, -eps, W + eps, H / 2 + eps, eps, 1)
 
@@ -213,7 +213,7 @@ def build_mesh_gmsh(cfg: Config, out_msh: Path) -> float:
     gmsh.option.setNumber("Mesh.CharacteristicLengthMax", lcG)
 
     # Ensure we write ALL elements (including 1D boundary line elements)
-    gmsh.option.setNumber("Mesh.SaveAll", 1)
+    gmsh.option.setNumber("Mesh.SaveAll", 0)
 
     # Force recombine on this surface
     gmsh.model.mesh.setRecombine(2, surf_tag, angle=45)
@@ -222,10 +222,10 @@ def build_mesh_gmsh(cfg: Config, out_msh: Path) -> float:
     gmsh.model.mesh.generate(2)
 
     # If user requested higher order, set it after generation.
-    # NOTE: for Q4 keep cfg.mesh.order=1 (recommended).
-    if int(cfg.mesh.order) != 1:
-        gmsh.model.mesh.setOrder(int(cfg.mesh.order))
+    # Force Q4 for this pipeline (higher order caused inverted elements with recombination)
+    gmsh.model.mesh.setOrder(1)
 
+    gmsh.option.setNumber("Mesh.MshFileVersion", 2.2)
     gmsh.write(str(out_msh))
     gmsh.finalize()
 
@@ -238,6 +238,8 @@ def build_mesh_gmsh(cfg: Config, out_msh: Path) -> float:
 # Q4 plane stress FE
 # -----------------------------
 def D_plane_stress(E: float, nu: float) -> np.ndarray:
+    E = float(E)
+    nu = float(nu)
     c = E / (1.0 - nu**2)
     return c * np.array(
         [[1.0, nu, 0.0],

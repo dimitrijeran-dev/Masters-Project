@@ -2,10 +2,10 @@ units: "SI"   # meters, Pascals
 
 geometry:
   W: 0.200          # plate width in x (m)
-  H: 0.100          # plate height in y (m)  (set to whatever you want)
+  H: 0.300          # plate height in y (m)  (set to whatever you want)
   R: 0.015          # hole radius (m) (Ø30 mm)
-  a: 0.010          # crack extension from hole edge (m)
-  crack_opening: 2.0e-4   # small gap to form two crack faces (m) ~0.2 mm
+  a: 0.012          # crack extension from hole edge (m)
+  crack_opening: 0.05   # small gap to form two crack faces (m) ~0.2 mm
   tip_refine_radius: 0.004  # refine around crack tip (m)
 
 mesh:
