@@ -5,7 +5,7 @@ geometry:
   H: 0.300          # plate height in y (m)  (set to whatever you want)
   R: 0.015          # hole radius (m) (Ø30 mm)
   a: 0.012          # crack extension from hole edge (m)
-  crack_opening: 0.0005   # small gap to form two crack faces (m) ~0.2 mm
+  crack_opening: 0.005   # small gap to form two crack faces (m) ~0.2 mm
   tip_refine_radius: 0.004  # refine around crack tip (m)
 
 mesh:
