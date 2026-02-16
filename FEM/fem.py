@@ -162,25 +162,42 @@ def build_mesh_gmsh(cfg: Config, out_msh: Path) -> float:
     gmsh.model.setPhysicalName(2, 1, "DOMAIN")
 
     # Boundary physical groups via bounding boxes
-    # IMPORTANT: add PhysicalGroups for curves so meshio can preserve gmsh:physical tags for line elements.
+    # Boundary physical groups via bounding boxes
     eps = 1e-6
     left_curves = gmsh.model.getEntitiesInBoundingBox(-eps, -H / 2 - eps, -eps, eps, H / 2 + eps, eps, 1)
     right_curves = gmsh.model.getEntitiesInBoundingBox(W - eps, -H / 2 - eps, -eps, W + eps, H / 2 + eps, eps, 1)
 
+    top_curves = gmsh.model.getEntitiesInBoundingBox(-eps,  H / 2 - eps, -eps, W + eps,  H / 2 + eps, eps, 1)
+    bot_curves = gmsh.model.getEntitiesInBoundingBox(-eps, -H / 2 - eps, -eps, W + eps, -H / 2 + eps, eps, 1)
+
     left_ids = [c[1] for c in left_curves]
     right_ids = [c[1] for c in right_curves]
+    top_ids = [c[1] for c in top_curves]
+    bot_ids = [c[1] for c in bot_curves]
 
-    if len(left_ids) == 0:
-        logging.warning("No LEFT boundary curves found by bounding box.")
-    else:
+    if left_ids:
         gmsh.model.addPhysicalGroup(1, left_ids, tag=11)
         gmsh.model.setPhysicalName(1, 11, "LEFT")
-
-    if len(right_ids) == 0:
-        logging.warning("No RIGHT boundary curves found by bounding box.")
     else:
+        logging.warning("No LEFT boundary curves found by bounding box.")
+
+    if right_ids:
         gmsh.model.addPhysicalGroup(1, right_ids, tag=12)
         gmsh.model.setPhysicalName(1, 12, "RIGHT")
+    else:
+        logging.warning("No RIGHT boundary curves found by bounding box.")
+
+    if top_ids:
+        gmsh.model.addPhysicalGroup(1, top_ids, tag=13)
+        gmsh.model.setPhysicalName(1, 13, "TOP")
+    else:
+        logging.warning("No TOP boundary curves found by bounding box.")
+
+    if bot_ids:
+        gmsh.model.addPhysicalGroup(1, bot_ids, tag=14)
+        gmsh.model.setPhysicalName(1, 14, "BOTTOM")
+    else:
+        logging.warning("No BOTTOM boundary curves found by bounding box.")
 
     # (Optional) all boundary curves group for debugging/BC alternatives
     all_curves = gmsh.model.getBoundary([(2, surf_tag)], oriented=False, recursive=False)
@@ -331,22 +348,50 @@ def assemble_system_q4(points: np.ndarray, quads: np.ndarray, D: np.ndarray, t: 
     return K.tocsr()
 
 
-def build_load_vector_traction(points: np.ndarray, line_elems: np.ndarray, traction_pa: float, t: float, direction: str) -> np.ndarray:
+def build_load_vector_traction(
+    points: np.ndarray,
+    line_elems: np.ndarray,
+    traction_pa: float,
+    t: float,
+    direction: str,) -> np.ndarray:
+    """
+    Uniform traction on a set of boundary line elements.
+
+    direction:
+      - "RIGHT":  tx = +traction, ty = 0
+      - "LEFT":   tx = -traction, ty = 0
+      - "TOP":    tx = 0, ty = +traction
+      - "BOTTOM": tx = 0, ty = -traction
+    """
     n = points.shape[0]
-    f = np.zeros(2*n, dtype=float)
-    tx = traction_pa if direction.upper() == "RIGHT" else -traction_pa
-    ty = 0.0
+    f = np.zeros(2 * n, dtype=float)
+
+    d = direction.upper()
+    if d == "RIGHT":
+        tx, ty = traction_pa, 0.0
+    elif d == "LEFT":
+        tx, ty = -traction_pa, 0.0
+    elif d == "TOP":
+        tx, ty = 0.0, traction_pa
+    elif d == "BOTTOM":
+        tx, ty = 0.0, -traction_pa
+    else:
+        raise ValueError(f"Unknown traction direction: {direction}")
 
     for (n1, n2) in line_elems:
         x1, y1 = points[n1]
         x2, y2 = points[n2]
         L = math.hypot(x2 - x1, y2 - y1)
+
+        # Consistent nodal load for a 2-node line under uniform traction:
+        # fe = ∫ N^T * t * traction ds  -> t*L/2 at each node
         fe = (t * L / 2.0) * np.array([tx, ty, tx, ty], dtype=float)
 
-        f[2*n1:2*n1+2] += fe[0:2]
-        f[2*n2:2*n2+2] += fe[2:4]
+        f[2 * n1 : 2 * n1 + 2] += fe[0:2]
+        f[2 * n2 : 2 * n2 + 2] += fe[2:4]
 
     return f
+
 
 
 def apply_dirichlet(K: csr_matrix, f: np.ndarray, fixed_dofs: np.ndarray, values: Optional[np.ndarray] = None) -> Tuple[csr_matrix, np.ndarray]:
@@ -452,6 +497,46 @@ def plot_mesh(points: np.ndarray, quads: np.ndarray, title: str, out_png: Path, 
     if show:
         plt.show()
     plt.close()
+    
+def plot_deformed_mesh(
+    points: np.ndarray,
+    quads: np.ndarray,
+    U: np.ndarray,
+    title: str,
+    out_png: Path,
+    scale: float = 1.0,
+    show: bool = False,) -> None:
+    """
+    Plot deformed Q4 mesh: (x',y') = (x,y) + scale*(ux,uy)
+    """
+    ux = U[0::2]
+    uy = U[1::2]
+    pts_def = points.copy()
+    pts_def[:, 0] += scale * ux
+    pts_def[:, 1] += scale * uy
+
+    plt.figure(figsize=(10, 5))
+    ax = plt.gca()
+    ax.set_aspect("equal", adjustable="box")
+
+    for conn in quads:
+        xy = pts_def[conn, :]
+        order = reorder_quad_ccw(xy)
+        xy = xy[order, :]
+        poly = np.vstack([xy, xy[0]])
+        ax.plot(poly[:, 0], poly[:, 1], linewidth=0.5)
+
+    ax.set_xlabel("x (m)")
+    ax.set_ylabel("y (m)")
+    ax.set_title(title + f" (scale={scale:g}x)")
+    ax.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(out_png, dpi=200)
+    logging.info("Saved deformed mesh plot: %s", out_png.resolve())
+    if show:
+        plt.show()
+    plt.close()
+
 
 
 # -----------------------------
@@ -495,6 +580,8 @@ def main() -> int:
     msh_path = export_dir / f"{prefix}_mesh.msh"
     mesh_png = export_dir / f"{prefix}_mesh.png"
     disp_csv = export_dir / f"{prefix}_nodes_for_dcm.csv"
+    mesh_def_png = export_dir / f"{prefix}_mesh_deformed.png"
+
 
     # 1) Mesh
     if args.regen_mesh or (not msh_path.exists()):
@@ -517,37 +604,47 @@ def main() -> int:
     logging.info("Assembling global stiffness (Q4)...")
     K = assemble_system_q4(points, quads, D, t)
 
-    # 4) Loads
+    # 4) Loads: tension in y by traction on TOP (+) and BOTTOM (-)
+    traction = float(cfg.loading.traction_pa)
     if cfg.loading.type.lower() != "traction":
         raise NotImplementedError("This pipeline currently supports traction loading only.")
 
-    right_lines = select_lines_by_phys(lines, line_phys, phys_id=12)
-    if right_lines.size == 0:
-        raise RuntimeError(
-            "No RIGHT boundary lines found (physical tag 12). "
-            "Check Gmsh physical groups or bounding-box selection."
-        )
+    top_lines = select_lines_by_phys(lines, line_phys, phys_id=13)
+    bot_lines = select_lines_by_phys(lines, line_phys, phys_id=14)
 
-    f = build_load_vector_traction(points, right_lines, cfg.loading.traction_pa, t, direction="RIGHT")
+    if top_lines.size == 0:
+        raise RuntimeError("No TOP boundary lines found (physical tag 13). Check Gmsh physical groups.")
+    if bot_lines.size == 0:
+        raise RuntimeError("No BOTTOM boundary lines found (physical tag 14). Check Gmsh physical groups.")
 
-    # 5) Dirichlet BCs on LEFT edge
+    f = np.zeros(2 * points.shape[0], dtype=float)
+    f += build_load_vector_traction(points, top_lines, traction, t, direction="TOP")
+    f += build_load_vector_traction(points, bot_lines, traction, t, direction="BOTTOM")
+
+
+    # 5) Dirichlet BCs: fix LEFT and RIGHT (ux=uy=0)
     fixed_dofs: List[int] = []
-    if cfg.loading.fix_left:
-        left_lines = select_lines_by_phys(lines, line_phys, phys_id=11)
-        if left_lines.size == 0:
-            raise RuntimeError(
-                "No LEFT boundary lines found (physical tag 11). "
-                "Check Gmsh physical groups or bounding-box selection."
-            )
 
-        left_nodes = np.unique(left_lines.reshape(-1))
-        fixed_dofs.extend((2 * left_nodes).tolist())  # ux = 0
-        if cfg.loading.fix_left_y:
-            fixed_dofs.extend((2 * left_nodes + 1).tolist())  # uy = 0
+    left_lines = select_lines_by_phys(lines, line_phys, phys_id=11)
+    right_lines = select_lines_by_phys(lines, line_phys, phys_id=12)
+
+    if left_lines.size == 0:
+        raise RuntimeError("No LEFT boundary lines found (physical tag 11). Check Gmsh physical groups.")
+    if right_lines.size == 0:
+        raise RuntimeError("No RIGHT boundary lines found (physical tag 12). Check Gmsh physical groups.")
+
+    left_nodes = np.unique(left_lines.reshape(-1))
+    right_nodes = np.unique(right_lines.reshape(-1))
+    fixed_nodes = np.unique(np.concatenate([left_nodes, right_nodes]))
+
+    # Fix both components on both sides
+    fixed_dofs.extend((2 * fixed_nodes).tolist())       # ux = 0
+    fixed_dofs.extend((2 * fixed_nodes + 1).tolist())   # uy = 0
 
     fixed_dofs_arr = np.unique(np.asarray(fixed_dofs, dtype=int))
     logging.info("Applying Dirichlet BCs on %d dofs", len(fixed_dofs_arr))
     K_bc, f_bc = apply_dirichlet(K, f, fixed_dofs_arr)
+
 
     # 6) Solve
     logging.info("Solving Ku=f ...")
@@ -557,12 +654,32 @@ def main() -> int:
     # 7) Export nodes near crack line for your DCM
     export_nodal_csv(points, U, disp_csv, y0=cfg.post.crack_line_y, band=cfg.post.crack_band)
 
+        # Choose a reasonable visualization scale automatically
+    umax = float(np.max(np.sqrt(U[0::2]**2 + U[1::2]**2)))
+    if umax > 0:
+        # target ~2% of plate height as visible deformation
+        target = 0.02 * cfg.geometry.H
+        scale = target / umax
+        # clamp so it doesn't get ridiculous
+        scale = float(np.clip(scale, 1.0, 5e3))
+    else:
+        scale = 1.0
+
+    plot_deformed_mesh(
+        points, quads, U,
+        title=f"{prefix}: deformed mesh",
+        out_png=mesh_def_png,
+        scale=scale,
+        show=args.show_mesh
+    )
+
     logging.info("Done.")
     logging.info("Outputs:")
     logging.info("  Mesh: %s", msh_path)
     logging.info("  Mesh plot: %s", mesh_png)
     logging.info("  DCM nodal CSV: %s", disp_csv)
-
+    logging.info("  Deformed mesh plot: %s", mesh_def_png)
+    
     return 0
 
 
