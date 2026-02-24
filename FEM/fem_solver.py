@@ -550,16 +550,31 @@ def write_vtk(cfg: SolverConfig, pts: np.ndarray, quad: np.ndarray, u: np.ndarra
     # --- compute cell stresses + von Mises ---
     sig_cell, vm_cell = compute_cell_stress_vonmises(cfg, pts, quad, u)
 
-    # ParaView likes tensor/vec lengths; we’ll store sigma as (ne,3) and vm as (ne,)
+    # Make sure shapes are correct
+    sig_cell = np.asarray(sig_cell, dtype=float)          # (ne,3)
+    vm_cell  = np.asarray(vm_cell, dtype=float).reshape(-1)  # (ne,)
+
+    if sig_cell.shape[0] != quad.shape[0] or vm_cell.shape[0] != quad.shape[0]:
+        raise RuntimeError(
+            f"Cell-data length mismatch: ne={quad.shape[0]}, "
+            f"sigma={sig_cell.shape}, vm={vm_cell.shape}"
+        )
+
     mesh = meshio.Mesh(
         points=pts3,
         cells=[("quad", quad)],
         point_data={"U": U3},
+        # meshio expects a LIST with one entry per cell block
         cell_data={
-            "sigma": [sig_cell],         # (sxx, syy, txy) per element
-            "von_mises": [vm_cell],      # scalar per element
+            "sigma": [sig_cell],            # (sxx, syy, txy) per element
+            "von_mises": [vm_cell],         # scalar per element
+            "sigma_xx": [sig_cell[:, 0]],
+            "sigma_yy": [sig_cell[:, 1]],
+            "tau_xy":   [sig_cell[:, 2]],
         },
     )
+
+    # Write as VTU (most reliable in ParaView)
     mesh.write(str(cfg.out_vtk))
     logging.info(f"Wrote results: {cfg.out_vtk} (with sigma, von_mises cell data)")
 
