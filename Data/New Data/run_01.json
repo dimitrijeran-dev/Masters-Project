@@ -1,0 +1,20 @@
+{
+    "timestamp": "2026-02-24T21:53:58.495586",
+    "J_N_per_m": 19294.493118588773,
+    "KI_Pa_sqrt_m": 37555657.988761686,
+    "material": {
+        "E (Pa)": 73100000000.0,
+        "nu": 0.33,
+        "plane_stress": true,
+        "thickness (m)": 0.005
+    },
+    "geometry (m)": {
+        "W": 0.2,
+        "H": 0.1,
+        "a": 0.04
+    },
+    "loading": {
+        "traction": 50000000.0,
+        "Units": "Pa"
+    }
+}
