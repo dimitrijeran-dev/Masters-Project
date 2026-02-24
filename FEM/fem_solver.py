@@ -235,6 +235,118 @@ def q4_B_matrix(xe: np.ndarray, xi: float, eta: float) -> Tuple[np.ndarray, floa
 
     return B, detJ
 
+def q4_B_and_grad_u(xe: np.ndarray, ue: np.ndarray, xi: float, eta: float):
+    """
+    Returns:
+      B: (3,8)
+      detJ: float
+      grad_u: (2,2) [[du/dx, du/dy],
+                    [dv/dx, dv/dy]]
+    """
+    N, dN_dxi = q4_shape(xi, eta)          # (4,), (4,2)
+    J = xe.T @ dN_dxi                      # (2,2)
+    detJ = float(np.linalg.det(J))
+    if detJ <= 0:
+        raise ValueError(f"Non-positive detJ={detJ}")
+    invJ = np.linalg.inv(J)
+    dN_dx = dN_dxi @ invJ.T                # (4,2)
+
+    # grad_u = ue^T * dN_dx
+    grad_u = ue.T @ dN_dx                  # (2,2)
+
+    B = np.zeros((3, 8), dtype=float)
+    for a in range(4):
+        dNdx, dNdy = dN_dx[a, 0], dN_dx[a, 1]
+        B[0, 2*a]     = dNdx
+        B[1, 2*a+1]   = dNdy
+        B[2, 2*a]     = dNdy
+        B[2, 2*a+1]   = dNdx
+
+    return B, detJ, grad_u
+
+
+def von_mises_from_sig(sxx: float, syy: float, txy: float, plane_stress: bool, nu: float, exx: float, eyy: float) -> float:
+    """
+    von Mises stress.
+    - Plane stress: szz = 0
+    - Plane strain: szz = nu*(sxx + syy) is NOT generally exact; better is szz = λ (exx+eyy) with εzz=0.
+      We'll compute szz from Lamé constants using strains (more correct).
+    """
+    if plane_stress:
+        szz = 0.0
+    else:
+        # plane strain: εzz = 0 => σzz = λ (εxx + εyy)
+        E = 1.0  # dummy; we don't have E here; compute using nu only isn't possible.
+        # We'll compute σzz in the caller where E is known, OR pass E in.
+        raise RuntimeError("For plane_strain von Mises, use von_mises_plane_strain(E, nu, exx, eyy, sxx, syy, txy).")
+
+    return float(np.sqrt(sxx*sxx - sxx*syy + syy*syy + 3.0*txy*txy))
+
+
+def von_mises_plane_strain(E: float, nu: float, exx: float, eyy: float, sxx: float, syy: float, txy: float) -> float:
+    """
+    3D von Mises using σzz from plane strain (εzz=0):
+      σzz = λ(εxx+εyy)
+    """
+    lam = E*nu/((1.0+nu)*(1.0-2.0*nu))
+    szz = lam*(exx + eyy)
+    return float(np.sqrt(0.5*((sxx-syy)**2 + (syy-szz)**2 + (szz-sxx)**2) + 3.0*(txy**2)))
+
+
+def compute_cell_stress_vonmises(cfg, pts: np.ndarray, quad: np.ndarray, u: np.ndarray):
+    """
+    Computes per-element averaged stress (sxx,syy,txy) and von Mises.
+    Returns:
+      sig_cell: (ne,3)
+      vm_cell:  (ne,)
+    """
+    D = D_matrix(cfg.E, cfg.nu, cfg.plane_stress)
+
+    # 2x2 Gauss
+    g = 1.0/np.sqrt(3.0)
+    gps = [(-g, -g), ( g, -g), ( g,  g), (-g,  g)]
+    w = 1.0
+
+    ne = quad.shape[0]
+    sig_cell = np.zeros((ne, 3), dtype=float)
+    vm_cell  = np.zeros(ne, dtype=float)
+
+    for e in range(ne):
+        nodes = quad[e]
+        xe = pts[nodes, :]
+        ue = np.column_stack([u[2*nodes], u[2*nodes + 1]])  # (4,2)
+
+        sig_acc = np.zeros(3, dtype=float)
+        vm_acc = 0.0
+        wt_acc = 0.0
+
+        for (xi, eta) in gps:
+            B, detJ, grad_u = q4_B_and_grad_u(xe, ue, xi, eta)
+
+            # strain Voigt: [exx, eyy, gxy], gxy = du/dy + dv/dx
+            exx = grad_u[0, 0]
+            eyy = grad_u[1, 1]
+            gxy = grad_u[0, 1] + grad_u[1, 0]
+            eps = np.array([exx, eyy, gxy], dtype=float)
+
+            sig = D @ eps  # [sxx, syy, txy]
+            sxx, syy, txy = float(sig[0]), float(sig[1]), float(sig[2])
+
+            if cfg.plane_stress:
+                vm = float(np.sqrt(sxx*sxx - sxx*syy + syy*syy + 3.0*txy*txy))
+            else:
+                vm = von_mises_plane_strain(cfg.E, cfg.nu, exx, eyy, sxx, syy, txy)
+
+            wt = detJ * w * w
+            sig_acc += sig * wt
+            vm_acc  += vm  * wt
+            wt_acc  += wt
+
+        sig_cell[e, :] = sig_acc / wt_acc
+        vm_cell[e]     = vm_acc  / wt_acc
+
+    return sig_cell, vm_cell
+
 
 # ----------------------------
 # Assembly
@@ -435,9 +547,21 @@ def write_vtk(cfg: SolverConfig, pts: np.ndarray, quad: np.ndarray, u: np.ndarra
     pts3 = np.column_stack([pts[:, 0], pts[:, 1], np.zeros(pts.shape[0])])
     U3 = np.column_stack([u[0::2], u[1::2], np.zeros(pts.shape[0])])
 
-    mesh = meshio.Mesh(points=pts3, cells=[("quad", quad)], point_data={"U": U3})
+    # --- compute cell stresses + von Mises ---
+    sig_cell, vm_cell = compute_cell_stress_vonmises(cfg, pts, quad, u)
+
+    # ParaView likes tensor/vec lengths; we’ll store sigma as (ne,3) and vm as (ne,)
+    mesh = meshio.Mesh(
+        points=pts3,
+        cells=[("quad", quad)],
+        point_data={"U": U3},
+        cell_data={
+            "sigma": [sig_cell],         # (sxx, syy, txy) per element
+            "von_mises": [vm_cell],      # scalar per element
+        },
+    )
     mesh.write(str(cfg.out_vtk))
-    logging.info(f"Wrote results: {cfg.out_vtk}")
+    logging.info(f"Wrote results: {cfg.out_vtk} (with sigma, von_mises cell data)")
 
 
 # ----------------------------
