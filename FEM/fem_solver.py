@@ -48,16 +48,15 @@ class SolverConfig:
     E: float = 73.1e9
     nu: float = 0.33
     plane_stress: bool = True
-    thickness: float = 0.005
+    thickness: float = 0.002
 
     # Boundary conditions
-    fix_right: bool = True
+    fix_bottom_uy: bool = True
 
-    # Tractions (Pa) applied on TOP and BOTTOM boundaries: (tx, ty)
-    # Default is "pure vertical tension": top pulls +y, bottom pulls -y.
+    # Top traction only: vertical tensile loading
     traction_top: Tuple[float, float] = (0.0, +50e6)
-    traction_bottom: Tuple[float, float] = (0.0, -50e6)
-    traction: float = 50e6  # nominal traction magnitude for reference in validation and logging
+    traction_bottom: Tuple[float, float] = (0.0, 0.0)   # no bottom traction
+    traction: float = 50e6
 
 
 # ----------------------------
@@ -425,8 +424,7 @@ def validate_solution(cfg: SolverConfig,
                     K: sp.csr_matrix,
                     f: np.ndarray,
                     top_edges: np.ndarray,
-                    bottom_edges: np.ndarray,
-                    right_edges: np.ndarray):
+                    bottom_edges: np.ndarray):
     """
     Expert-style sanity checks:
     (1) Total applied forces on TOP/BOTTOM from assembled RHS
@@ -463,20 +461,19 @@ def validate_solution(cfg: SolverConfig,
     Fy_nom = sigma_nom * cfg.W * cfg.thickness
     logging.info(f"Nominal |Fy| per edge ~ sigma*W*t = {Fy_nom:.6e} N  (sigma={sigma_nom:.3e} Pa)")
 
-    # ---- (2) Reaction forces on fixed RIGHT boundary ----
-    r = K @ u - f  # reactions appear on constrained dofs in elimination method
-    right_nodes = np.unique(right_edges.reshape(-1))
-    right_dofs_x = 2 * right_nodes
-    right_dofs_y = 2 * right_nodes + 1
-    Rx_right = float(np.sum(r[right_dofs_x]))
-    Ry_right = float(np.sum(r[right_dofs_y]))
+    r = K @ u - f
+    bottom_nodes = np.unique(bottom_edges.reshape(-1))
+    bottom_dofs_x = 2 * bottom_nodes
+    bottom_dofs_y = 2 * bottom_nodes + 1
+    Rx_bottom = float(np.sum(r[bottom_dofs_x]))
+    Ry_bottom = float(np.sum(r[bottom_dofs_y]))
 
-    logging.info("---- Validation: Reactions on RIGHT clamp ----")
-    logging.info(f"Sum reactions on RIGHT: Rx = {Rx_right:.6e} N, Ry = {Ry_right:.6e} N")
+    logging.info("---- Validation: Reactions on BOTTOM support ----")
+    logging.info(f"Sum reactions on BOTTOM: Rx = {Rx_bottom:.6e} N, Ry = {Ry_bottom:.6e} N")
 
     # ---- (3) Far-field strain estimate from uy(y) at a probe x ----
     # Choose probe line near the right, but not on the clamp (avoid x=W exactly).
-    x_probe = 0.75 * cfg.W
+    x_probe = 0.85 * cfg.W
     band = 0.02 * cfg.W  # 2% of width band
     mask = np.abs(pts[:, 0] - x_probe) < band
     y = pts[mask, 1]
@@ -607,17 +604,15 @@ def main():
     if use_phys:
         top_edges = boundary_edges_by_name(lines, line_phys, phys_map, "TOP")
         bottom_edges = boundary_edges_by_name(lines, line_phys, phys_map, "BOTTOM")
-        right_edges = boundary_edges_by_name(lines, line_phys, phys_map, "RIGHT")
     else:
         tol = 1e-8
         top_edges = boundary_edges_by_coord(lines, pts, "TOP", W=cfg.W, H=cfg.H, tol=tol)
         bottom_edges = boundary_edges_by_coord(lines, pts, "BOTTOM", W=cfg.W, H=cfg.H, tol=tol)
-        right_edges = boundary_edges_by_coord(lines, pts, "RIGHT", W=cfg.W, H=cfg.H, tol=tol)
 
-    logging.info(f"TOP edges: {len(top_edges)}, BOTTOM edges: {len(bottom_edges)}, RIGHT edges: {len(right_edges)}")
+    logging.info(f"TOP edges: {len(top_edges)}, BOTTOM edges: {len(bottom_edges)}")
     logging.info(f"traction_top = {cfg.traction_top}, traction_bottom = {cfg.traction_bottom}")
 
-    if len(top_edges) == 0 or len(bottom_edges) == 0 or len(right_edges) == 0:
+    if len(top_edges) == 0 or len(bottom_edges) == 0:
         raise RuntimeError(
             "Boundary edge detection returned an empty set. "
             "If using coordinate fallback, increase tol or confirm W/H."
@@ -633,27 +628,29 @@ def main():
 
     logging.info(f"RHS norm = {np.linalg.norm(f):.6e}")
 
-    right_nodes = np.unique(right_edges.reshape(-1))
+    bottom_nodes = np.unique(bottom_edges.reshape(-1))
 
-    # 1) Fix ux = 0 on RIGHT edge (roller)
-    fixed_dofs = list((2 * right_nodes).astype(int))
-    fixed_vals = list(np.zeros_like(right_nodes, dtype=float))
+    # 1) Fix uy = 0 on entire bottom edge
+    fixed_dofs = list((2 * bottom_nodes + 1).astype(int))
+    fixed_vals = list(np.zeros_like(bottom_nodes, dtype=float))
 
-    # 2) Fix uy = 0 at ONE node to remove rigid translation in y
-    # Choose a node on the right edge closest to y=0 (or bottom-right corner)
-    y_right = pts[right_nodes, 1]
-    anchor = int(right_nodes[np.argmin(np.abs(y_right - 0.0))])   # anchor near mid-height
-    fixed_dofs.append(2 * anchor + 1)
+    # 2) Fix ux = 0 at ONE bottom node to prevent rigid-body motion in x
+    x_bottom = pts[bottom_nodes, 0]
+    x_center = 0.5 * (np.min(x_bottom) + np.max(x_bottom))
+    anchor = int(bottom_nodes[np.argmin(np.abs(x_bottom - x_center))])  # bottom-center node
+
+    fixed_dofs.append(2 * anchor)   # ux of one node
     fixed_vals.append(0.0)
 
-    fixed_dofs = np.array(sorted(fixed_dofs), dtype=int)
-    fixed_vals = np.array([v for _, v in sorted(zip(fixed_dofs, fixed_vals), key=lambda t: t[0])], dtype=float)
+    pairs = sorted(zip(fixed_dofs, fixed_vals), key=lambda t: t[0])
+    fixed_dofs = np.array([p[0] for p in pairs], dtype=int)
+    fixed_vals = np.array([p[1] for p in pairs], dtype=float)
 
     # Solve
     u = solve_dirichlet_elimination(K, f, fixed_dofs, fixed_vals)
     
     # Validate
-    validate_solution(cfg, pts, u, K, f, top_edges, bottom_edges, right_edges)
+    validate_solution(cfg, pts, u, K, f, top_edges, bottom_edges)
 
     # Output
     write_vtk(cfg, pts, quad, u)
