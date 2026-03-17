@@ -14,9 +14,6 @@ import meshio
 from datetime import datetime
 import json
 
-def make_run_name(prefix: str = "run") -> str:
-    return f"{prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
-
 # ----------------------------
 # Config
 # ----------------------------
@@ -29,12 +26,12 @@ class Config:
     # Geometry (m)
     W: float = 0.200
     H: float = 0.100
-    a: float = 0.040
+    a: float = 0.055
     crack_gap: float = 5e-5
 
     # Mesh sizing
     lc_global: float = 0.006
-    lc_tip: float = 0.00075
+    lc_tip: float = 0.001
     tip_refine_r: float = 0.010
 
     # Material
@@ -50,6 +47,8 @@ class Config:
 def setup_logging():
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
+def make_run_name(prefix: str = "run") -> str:
+    return f"{prefix}_{Config.a}mm"
 
 # ----------------------------
 # Gmsh: quad mesh with recombination

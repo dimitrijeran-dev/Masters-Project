@@ -50,7 +50,7 @@ class ValConfig:
     export_csv: Optional[Path] = None
 
     # Geometry
-    a: float = 0.040
+    a: float = 0.055
     W: float = 0.200
     H: float = 0.100
 
@@ -63,7 +63,7 @@ class ValConfig:
     sigma_nominal: float = 50e6
 
     # Crack definition
-    tip: Tuple[float, float] = (0.04, 0.0)
+    tip: Tuple[float, float] = (0.055, 0.0)
     crack_dir: Tuple[float, float] = (1.0, 0.0)
 
     # Stress sampling
@@ -73,7 +73,7 @@ class ValConfig:
 
     # J sweep
     r_in: float = 0.008
-    r_out_list: Tuple[float, ...] = (0.012, 0.014, 0.016, 0.018, 0.020, 0.022, 0.024, 0.026, 0.028, 0.03, 0.032)
+    r_out_list: Tuple[float, ...] = (0.018, 0.02, 0.022, 0.024, 0.026, 0.028, 0.03, 0.032, 0.034, 0.036, 0.04)
     crack_face_exclusion: float = 5.0e-4
 
 
@@ -482,7 +482,7 @@ def main():
     setup_logging()
     cfg = ValConfig()
 
-    cfg.run_name = "meshrun_20260316_232741"
+    cfg.run_name = "meshrun_0.055mm"
     cfg.run_dir = Path("Data/New Data") / cfg.run_name
 
     cfg.vtu_path = cfg.run_dir / "solution_q4.vtu"
@@ -559,6 +559,7 @@ def main():
         
     summary = {
     "run_name": cfg.run_name,
+    "a": cfg.a,
     "r_in": cfg.r_in,
     "r_out_list": list(r_outs),
     "J_list": list(map(float, Js)),

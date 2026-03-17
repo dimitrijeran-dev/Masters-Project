@@ -4,8 +4,8 @@ fem_solver.py
 
 - Reads a Gmsh .msh file (unstructured quads) via meshio
 - Assembles Q4 plane stress/strain stiffness (2x2 Gauss)
-- Applies uniform tractions on TOP and BOTTOM boundaries
-- Fixes the RIGHT boundary (u=v=0)
+- Applies uniform traction on TOP boundary
+- Fixes the BOTTOM boundary (u=v=0)
 - Writes solution to VTK for ParaView
 
 Key fix vs earlier versions:
@@ -53,7 +53,7 @@ class SolverConfig:
     # Geometry (used only for optional coordinate fallback / sanity)
     W: float = 0.200
     H: float = 0.100
-    a: float = 0.040
+    a: float = 0.055
     crack_gap: float = 5e-5
 
     # Material
@@ -625,7 +625,7 @@ def main():
     
     cfg = SolverConfig()
 
-    cfg.run_name = "meshrun_20260316_232741"
+    cfg.run_name = "meshrun_0.055mm"
     cfg.run_dir = Path("Data/New Data") / cfg.run_name
 
     cfg.msh_path = cfg.run_dir / "plate_edge_crack_q4.msh"
