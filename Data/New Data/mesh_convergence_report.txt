@@ -1,0 +1,22 @@
+Mesh Convergence Study Summary
+================================
+Metric used for x-axis: lc_tip
+Number of runs: 6
+
+What to look for:
+- K_I and J should approach a stable value as the mesh is refined.
+- J_relative_span and KI_relative_span should get smaller or stay small.
+- JK_relative_residual should stay near zero.
+
+Quick numerical checks:
+- Last-two-mesh relative change in K_I : 7.9580%
+- Last-two-mesh relative change in J   : 16.5493%
+- Finest-mesh J contour spread         : 2.3584%
+- Finest-mesh K_I contour spread       : 1.1771%
+- Finest-mesh J-K residual             : 0.0000%
+
+Rule-of-thumb interpretation:
+- A flattening K_I curve is a good sign.
+- A flattening J curve is a good sign.
+- Roughly < 2-5% contour spread in the plateau region is encouraging.
+- Large drift with refinement usually means the tip mesh or contour choice still needs work.

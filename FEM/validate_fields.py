@@ -29,21 +29,25 @@ import numpy as np
 import matplotlib.pyplot as plt
 import meshio
 
+from datetime import datetime
+import json
+
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 
 # --- import your J-integral functions ---
 from src.J_Integral import compute_J_domain_q4, sweep_J_rout
 
-
 # ----------------------------
 # Config
 # ----------------------------
 @dataclass
 class ValConfig:
-    # Data sources (pick one)
-    vtu_path: Optional[Path] = Path("out_plate_edge_crack_q4/solution_q4.vtk")
-    npz_path: Optional[Path] = None  # e.g. Path("Data/run_01_fields.npz")
+    run_name: Optional[str] = None
+    run_dir: Optional[Path] = None
+    vtu_path: Optional[Path] = None
+    npz_path: Optional[Path] = None
+    export_csv: Optional[Path] = None
 
     # Geometry
     a: float = 0.040
@@ -51,28 +55,26 @@ class ValConfig:
     H: float = 0.100
 
     # Material
-    E: float = 70e9
+    E: float = 73.1e9
     nu: float = 0.33
     plane_stress: bool = True
 
-    # Loading (for Y factor)
-    sigma_nominal: float = 50e6  # Pa (your applied nominal stress)
+    # Loading
+    sigma_nominal: float = 50e6
 
-    # Crack definition / sampling
+    # Crack definition
     tip: Tuple[float, float] = (0.04, 0.0)
-    crack_dir: Tuple[float, float] = (1.0, 0.0)  # +x for your edge crack
+    crack_dir: Tuple[float, float] = (1.0, 0.0)
 
-    # Stress sampling ahead of tip
+    # Stress sampling
     r_min: float = 2.0e-4
     r_max: float = 3.0e-2
     n_r: int = 200
 
     # J sweep
-    r_in: float = 0.01
-    r_out_list: Tuple[float, ...] = (0.02, 0.025, 0.03, 0.035)
-
-    # Optional: export sampled line data
-    export_csv: Optional[Path] = Path("out_plate_edge_crack_q4/validation_line.csv")
+    r_in: float = 0.008
+    r_out_list: Tuple[float, ...] = (0.012, 0.014, 0.016, 0.018, 0.020, 0.022, 0.024, 0.026, 0.028, 0.03, 0.032)
+    crack_face_exclusion: float = 5.0e-4
 
 
 # ----------------------------
@@ -105,6 +107,9 @@ def von_mises_plane_strain(E: float, nu: float, exx: float, eyy: float, sxx: flo
     lam = E * nu / ((1.0 + nu) * (1.0 - 2.0 * nu))
     szz = lam * (exx + eyy)  # εzz=0
     return float(np.sqrt(0.5*((sxx-syy)**2 + (syy-szz)**2 + (szz-sxx)**2) + 3.0*(txy**2)))
+
+def E_prime(E: float, nu: float, plane_stress: bool) -> float:
+    return float(E if plane_stress else E / (1.0 - nu**2))
 
 
 # ----------------------------
@@ -351,6 +356,40 @@ def sample_stress_along_crack_line(
         "von_mises": vm,
     }
 
+def choose_best_plateau_index(values: List[float]) -> int:
+    arr = np.asarray(values, dtype=float)
+    n = len(arr)
+
+    if n < 3:
+        return n // 2
+
+    best_i = 1
+    best_score = np.inf
+
+    for i in range(1, n - 1):
+        window = arr[i - 1:i + 2]
+        meanv = float(np.mean(window))
+        if abs(meanv) < 1e-30:
+            continue
+        rel_span = (np.max(window) - np.min(window)) / abs(meanv)
+        if rel_span < best_score:
+            best_score = rel_span
+            best_i = i
+
+    return best_i
+
+def relative_span(vals: List[float]) -> float:
+    arr = np.asarray(vals, dtype=float)
+    m = float(np.mean(arr))
+    if abs(m) < 1e-30:
+        return np.nan
+    return float((np.max(arr) - np.min(arr)) / abs(m))
+
+def JK_consistency_residual(J: float, KI: float, E: float, nu: float, plane_stress: bool) -> float:
+    Ep = E_prime(E, nu, plane_stress)
+    J_from_K = KI**2 / Ep
+    denom = max(abs(J), 1e-30)
+    return float(abs(J_from_K - J) / denom)
 
 # ----------------------------
 # Plot helpers
@@ -398,6 +437,23 @@ def plot_sigma_and_vm(r: np.ndarray, syy: np.ndarray, vm: np.ndarray, out_png: O
     plt.xscale("log")
     if out_png:
         plt.savefig(out_png, dpi=200, bbox_inches="tight")
+        
+def plot_J_vs_rout(
+    r_out_list: List[float],
+    J_list: List[float],
+    chosen_idx: Optional[int] = None,
+    out_png: Optional[Path] = None,
+):
+    plt.figure()
+    plt.plot(r_out_list, J_list, marker="o")
+    if chosen_idx is not None:
+        plt.plot(r_out_list[chosen_idx], J_list[chosen_idx], marker="s", markersize=8)
+    plt.xlabel("r_out (m)")
+    plt.ylabel("J (N/m)")
+    plt.title("J-integral path independence")
+    plt.grid(True)
+    if out_png:
+        plt.savefig(out_png, dpi=200, bbox_inches="tight")
 
 
 def print_Y_factor(KI: float, sigma: float, a: float):
@@ -413,6 +469,11 @@ def export_line_csv(path: Path, data: Dict[str, np.ndarray]):
     np.savetxt(path, arr, delimiter=",", header=header, comments="")
     logging.info(f"Wrote CSV: {path}")
 
+def write_summary_json(path: Path, summary: dict):
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(path, "w") as f:
+        json.dump(summary, f, indent=2)
+    logging.info(f"Wrote summary: {path}")
 
 # ----------------------------
 # Main
@@ -421,27 +482,52 @@ def main():
     setup_logging()
     cfg = ValConfig()
 
+    cfg.run_name = "meshrun_20260316_232741"
+    cfg.run_dir = Path("Data/New Data") / cfg.run_name
+
+    cfg.vtu_path = cfg.run_dir / "solution_q4.vtu"
+    cfg.npz_path = cfg.run_dir / "fields.npz"
+    cfg.export_csv = cfg.run_dir / "validation_line.csv"
+
+    outdir = cfg.run_dir
+    outdir.mkdir(parents=True, exist_ok=True)
+
     pts, conn, u = load_solution(cfg)
     tip = np.array(cfg.tip, dtype=float)
     crack_dir = np.array(cfg.crack_dir, dtype=float)
 
     # ---- J sweep for KI vs r_out ----
+    logging.info(f"Using crack_face_exclusion = {cfg.crack_face_exclusion:.3e} m")
     logging.info("Running J sweep for KI vs r_out ...")
     sweep = sweep_J_rout(
         pts=pts, conn=conn, U=u, tip=tip,
         E=cfg.E, nu=cfg.nu, plane_stress=cfg.plane_stress,
         r_in=cfg.r_in, r_out_list=list(cfg.r_out_list),
         crack_dir=crack_dir,
-        log_each=True
+        log_each=True,
+        crack_start=np.array([0.0, 0.0], dtype=float),
+        crack_end=tip,
+        exclude_crack_faces=True,
+        crack_face_exclusion=cfg.crack_face_exclusion,
     )
     r_outs = [s.r_out for s in sweep]
     KIs = [s.KI for s in sweep]
     Js  = [s.J for s in sweep]
 
+    J_rel_span = relative_span(Js)
+    KI_rel_span = relative_span(KIs)
+
+    logging.info(f"J relative span across contours  = {J_rel_span:.4%}")
+    logging.info(f"KI relative span across contours = {KI_rel_span:.4%}")
+    
     # choose a reference KI (use the middle r_out)
-    KI_ref = float(KIs[len(KIs)//2])
-    J_ref = float(Js[len(Js)//2])
-    logging.info(f"Using reference: r_out={r_outs[len(r_outs)//2]:.4f}, J={J_ref:.6e}, KI={KI_ref:.6e}")
+    best_idx = choose_best_plateau_index(Js)
+    KI_ref = float(KIs[best_idx])
+    J_ref = float(Js[best_idx])
+    logging.info(f"Using plateau contour: r_out={r_outs[best_idx]:.4f}, " f"J={J_ref:.6e}, KI={KI_ref:.6e}")
+   
+    JK_resid = JK_consistency_residual(J_ref, KI_ref, cfg.E, cfg.nu, cfg.plane_stress)
+    logging.info(f"J-K consistency residual = {JK_resid:.4e}")
 
     # ---- Y factor ----
     aW = cfg.a / cfg.W
@@ -459,16 +545,34 @@ def main():
     )
 
     # ---- Plots ----
-    outdir = Path("out_plate_edge_crack_q4")
+    outdir = cfg.run_dir
     outdir.mkdir(parents=True, exist_ok=True)
 
     plot_KI_vs_rout(r_outs, KIs, out_png=outdir / "KI_vs_rout.png")
     plot_sigma_sqrt_r(line["r"], line["syy"], KI_ref, out_png=outdir / "sigma_sqrt_2pir_vs_r.png")
     plot_sigma_and_vm(line["r"], line["syy"], line["von_mises"], out_png=outdir / "sigma_yy_and_vonmises_vs_r.png")
-
+    plot_J_vs_rout(r_outs, Js, chosen_idx=best_idx, out_png=outdir / "J_path_independence.png")
+    
     # ---- CSV export ----
     if cfg.export_csv is not None:
         export_line_csv(cfg.export_csv, line)
+        
+    summary = {
+    "run_name": cfg.run_name,
+    "r_in": cfg.r_in,
+    "r_out_list": list(r_outs),
+    "J_list": list(map(float, Js)),
+    "KI_list": list(map(float, KIs)),
+    "best_idx": int(best_idx),
+    "best_r_out": float(r_outs[best_idx]),
+    "J_ref": float(J_ref),
+    "KI_ref": float(KI_ref),
+    "J_relative_span": float(J_rel_span),
+    "KI_relative_span": float(KI_rel_span),
+    "JK_relative_residual": float(JK_resid),
+    "Y_est": float(Y),
+    }
+    write_summary_json(outdir / "validation_summary.json", summary)
 
     plt.show()
 

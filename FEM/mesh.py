@@ -4,19 +4,27 @@ import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
+from typing import Optional
 
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 import meshio
 
+from datetime import datetime
+import json
+
+def make_run_name(prefix: str = "run") -> str:
+    return f"{prefix}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
 # ----------------------------
 # Config
 # ----------------------------
 @dataclass
 class Config:
-    out_dir: Path = Path("out_plate_edge_crack_q4")
+    base_out_dir: Path = Path("Data/New Data")
+    run_name: Optional[str] = None
+    out_dir: Optional[Path] = None
 
     # Geometry (m)
     W: float = 0.200
@@ -26,11 +34,11 @@ class Config:
 
     # Mesh sizing
     lc_global: float = 0.006
-    lc_tip: float = 0.0015
+    lc_tip: float = 0.00075
     tip_refine_r: float = 0.010
 
     # Material
-    E: float = 70e9
+    E: float = 73.1e9
     nu: float = 0.33
     plane_stress: bool = True
     thickness: float = 0.005
@@ -95,7 +103,7 @@ def build_mesh_gmsh_quads(cfg: Config, msh_path: Path):
     # Goal: enforce UNIFORM small elements inside a disk around the crack tip
     # that fully contains the J-integral annulus (e.g., r_out up to 0.035 m).
     x_tip, y_tip = a, 0.0
-    r_uniform = 0.040      # must be >= your largest r_out (recommend 0.04 for r_out<=0.035)
+    r_uniform = 0.04      # must be >= your largest r_out (recommend 0.04 for r_out<=0.035)
     lcU = lcT              # uniform size inside disk (use lc_tip)
     lcG = lcG              # global outside
 
@@ -384,6 +392,10 @@ def write_vtk(out_path: Path, pts: np.ndarray, quad: np.ndarray, u: np.ndarray):
 def main():
     setup_logging()
     cfg = Config()
+    if cfg.run_name is None:
+        cfg.run_name = make_run_name("meshrun")
+
+    cfg.out_dir = cfg.base_out_dir / cfg.run_name
     cfg.out_dir.mkdir(parents=True, exist_ok=True)
 
     msh_path = cfg.out_dir / "plate_edge_crack_q4.msh"

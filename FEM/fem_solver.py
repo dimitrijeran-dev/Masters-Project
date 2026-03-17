@@ -22,6 +22,10 @@ import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 import meshio
+from typing import Optional
+
+from datetime import datetime
+import json
 
 import sys
 from pathlib import Path
@@ -35,8 +39,16 @@ sys.path.insert(0, str(PROJECT_ROOT))
 # ----------------------------
 @dataclass
 class SolverConfig:
-    msh_path: Path = Path("out_plate_edge_crack_q4/plate_edge_crack_q4.msh")
-    out_vtk: Path = Path("out_plate_edge_crack_q4/solution_q4.vtk")
+    base_out_dir: Path = Path("Data/New Data")
+    run_name: Optional[str] = None
+
+    # these get assigned in main()
+    run_dir: Optional[Path] = None
+    msh_path: Optional[Path] = None
+    out_vtk: Optional[Path] = None
+    out_npz: Optional[Path] = None
+    meta_path: Optional[Path] = None
+
 
     # Geometry (used only for optional coordinate fallback / sanity)
     W: float = 0.200
@@ -575,13 +587,51 @@ def write_vtk(cfg: SolverConfig, pts: np.ndarray, quad: np.ndarray, u: np.ndarra
     mesh.write(str(cfg.out_vtk))
     logging.info(f"Wrote results: {cfg.out_vtk} (with sigma, von_mises cell data)")
 
+def save_npz_results(npz_path: Path, pts: np.ndarray, quad: np.ndarray, u: np.ndarray):
+    npz_path.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(
+        npz_path,
+        pts=pts,
+        conn=quad,
+        u=u
+    )
+    logging.info(f"Wrote NPZ: {npz_path}")
+    
+def save_metadata(cfg: SolverConfig, J: float, KI: float):
+    meta = {
+        "run_name": cfg.run_name,
+        "W": cfg.W,
+        "H": cfg.H,
+        "a": cfg.a,
+        "crack_gap": cfg.crack_gap,
+        "E": cfg.E,
+        "nu": cfg.nu,
+        "plane_stress": cfg.plane_stress,
+        "thickness": cfg.thickness,
+        "traction_top": list(cfg.traction_top),
+        "traction_bottom": list(cfg.traction_bottom),
+        "J": J,
+        "KI": KI,
+    }
+    with open(cfg.meta_path, "w") as f:
+        json.dump(meta, f, indent=2)
+    logging.info(f"Wrote metadata: {cfg.meta_path}")
 
 # ----------------------------
 # Main
 # ----------------------------
 def main():
     setup_logging()
+    
     cfg = SolverConfig()
+
+    cfg.run_name = "meshrun_20260316_232741"
+    cfg.run_dir = Path("Data/New Data") / cfg.run_name
+
+    cfg.msh_path = cfg.run_dir / "plate_edge_crack_q4.msh"
+    cfg.out_vtk = cfg.run_dir / "solution_q4.vtk"
+    cfg.out_npz = cfg.run_dir / "fields.npz"
+    cfg.meta_path = cfg.run_dir / "metadata.json"
 
     logging.info(f"Reading mesh: {cfg.msh_path}")
     pts, quad, lines, line_phys, phys_map = read_gmsh_quad_mesh(cfg.msh_path)
@@ -654,6 +704,8 @@ def main():
 
     # Output
     write_vtk(cfg, pts, quad, u)
+    
+    save_npz_results(cfg.out_npz, pts, quad, u)
 
     umax = float(np.max(np.sqrt(u[0::2] ** 2 + u[1::2] ** 2)))
     logging.info(f"Max |U| = {umax:.6e} m")
@@ -677,6 +729,8 @@ def main():
         crack_face_exclusion=crack_face_excl,
         log=True
     )
+    
+    save_metadata(cfg, J, KI)
 
     res = sweep_J_rout(
         pts=pts, conn=quad, U=u, tip=tip,
@@ -692,13 +746,12 @@ def main():
     )
     
     save_run_results(
-        folder="/workspaces/Masters-Project/Data/New Data",
-        filename="run_01",
+        folder=str(cfg.run_dir),
+        filename=cfg.run_name,
         J=J,
         KI=KI,
         cfg=cfg
     )
-
 
 if __name__ == "__main__":
     main()
