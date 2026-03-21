@@ -73,7 +73,10 @@ class ValConfig:
 
     # J sweep
     r_in: float = 0.008
-    r_out_list: Tuple[float, ...] = (0.018, 0.02, 0.022, 0.024, 0.026, 0.028, 0.03, 0.032, 0.034, 0.036, 0.04)
+    r_out_list: Tuple[float, ...] = (
+        0.014, 0.016, 0.018, 0.020,
+        0.022, 0.024, 0.026
+    )
     crack_face_exclusion: float = 5.0e-4
 
 
