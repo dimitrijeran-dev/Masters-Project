@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python3
 import argparse
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -14,7 +14,7 @@ def main():
 
     df = pd.read_csv(args.delta_k_csv)
     a = df["a"].values
-    delta_k = df["DeltaK"].values
+    delta_k = df["DeltaK"].values / 1e6  # convert Pa√m → MPa√m
 
     dadn = paris_law(delta_k, args.C, args.m)
     N, dadn = integrate_crack_growth(a, delta_k, args.C, args.m)

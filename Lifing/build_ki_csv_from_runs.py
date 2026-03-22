@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python3
 import argparse
 import json
 import csv
@@ -7,7 +7,7 @@ from pathlib import Path
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-dirs", nargs="+", required=True)
-    parser.add_argument("--a-values", nargs="+", type=float, required=True)
+    parser.add_argument("--a-values", nargs="+", type=float, required=False)
     parser.add_argument("--out-csv", required=True)
     args = parser.parse_args()
 

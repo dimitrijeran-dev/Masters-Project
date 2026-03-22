@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python3
 import argparse
 import pandas as pd
 from fatigue_lifing_utils import load_ki_csv, compute_delta_k_from_R, compute_delta_k

@@ -1,4 +1,4 @@
-
+#!/usr/bin/env python3
 import argparse
 import numpy as np
 import pandas as pd
@@ -20,7 +20,7 @@ def main():
 
     df = pd.read_csv(args.delta_k_csv)
     a = df["a"].values
-    delta_k = df["DeltaK"].values
+    delta_k = df["DeltaK"].values / 1e6  # convert Pa√m → MPa√m
 
     C_samples = np.random.normal(args.C_mean, args.C_mean*args.C_cov, args.nsamples)
     m_samples = np.random.normal(args.m_mean, args.m_std, args.nsamples)
@@ -37,8 +37,8 @@ def main():
     os.makedirs(args.outdir, exist_ok=True)
 
     plt.figure()
-    plt.hist(life, bins=40)
-    plt.xlabel("Cycles to failure")
+    plt.hist(np.log10(life), bins=40)
+    plt.xlabel("log10(Cycles to failure)")
     plt.ylabel("Frequency")
     plt.title("Monte Carlo fatigue life")
     plt.savefig(f"{args.outdir}/life_histogram.png")
