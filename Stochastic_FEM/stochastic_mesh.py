@@ -45,7 +45,7 @@ class MeshConfig:
     run_name: Optional[str] = None
     out_dir: Optional[Path] = None
 
-    geometry_type: str = "plate_hole_edge_crack"   # or "plate_hole_edge_crack"
+    geometry_type: str = "plate_edge_crack"   # or "plate_hole_edge_crack"
 
     # Plate dimensions
     W: float = 1
@@ -61,7 +61,7 @@ class MeshConfig:
 
     # Mesh sizing
     lc_global: float = 0.006
-    lc_tip: float = 0.0001
+    lc_tip: float = 0.001
     tip_refine_r: float = 0.005
 
 
@@ -366,7 +366,7 @@ def main() -> None:
     cfg = MeshConfig()
 
     if cfg.run_name is None:
-        cfg.run_name = f"stoch_{cfg.geometry_type}"
+        cfg.run_name = f"Smaller_rin_{cfg.geometry_type}"
 
     cfg.out_dir = cfg.base_out_dir / cfg.run_name
     cfg.out_dir.mkdir(parents=True, exist_ok=True)
