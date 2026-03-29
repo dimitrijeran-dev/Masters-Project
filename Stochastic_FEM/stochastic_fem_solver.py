@@ -619,6 +619,144 @@ def solve_one(cfg: SolverConfig, realization_id: int = 0, kl_data: Optional[dict
     )
 
 
+def solve_from_material_field(
+    mesh_path: Path,
+    material_field: Optional[np.ndarray] = None,
+    E_scalar: Optional[float] = None,
+    nu_scalar: Optional[float] = None,
+    config: Optional[SolverConfig] = None,
+) -> dict:
+    """
+    Solve a single deterministic FE case from either:
+      - prescribed elementwise material field, or
+      - scalar E/nu overrides.
+    """
+    cfg = SolverConfig() if config is None else config
+    cfg = SolverConfig(**asdict(cfg))
+    mesh_path = Path(mesh_path)
+    cfg.run_dir = mesh_path.parent
+    cfg.msh_name = mesh_path.name
+    if E_scalar is not None:
+        cfg.E_mean = float(E_scalar)
+    if nu_scalar is not None:
+        cfg.nu = float(nu_scalar)
+    cfg.stochastic_E = material_field is not None
+
+    pts, quad, lines, line_phys, phys_map = read_gmsh_quad_mesh(mesh_path)
+    top_edges = boundary_edges_by_name(pts, quad, lines, line_phys, phys_map, "TOP", cfg.W, cfg.H)
+    bottom_edges = boundary_edges_by_name(pts, quad, lines, line_phys, phys_map, "BOTTOM", cfg.W, cfg.H)
+    centroids = element_centroids(pts, quad)
+
+    if material_field is None:
+        E_elem = np.full(quad.shape[0], float(cfg.E_mean), dtype=float)
+    else:
+        E_elem = np.asarray(material_field, dtype=float).reshape(-1)
+        if E_elem.size != quad.shape[0]:
+            raise ValueError("material_field length must match number of mesh elements")
+
+    K = assemble_global_K(cfg, pts, quad, E_elem)
+    f = assemble_uniform_traction_rhs(cfg, pts, top_edges, cfg.traction_top[0], cfg.traction_top[1])
+    f += assemble_uniform_traction_rhs(cfg, pts, bottom_edges, cfg.traction_bottom[0], cfg.traction_bottom[1])
+
+    bottom_nodes = np.unique(bottom_edges.reshape(-1))
+    fixed_dofs = list((2 * bottom_nodes + 1).astype(int))
+    fixed_vals = list(np.zeros_like(bottom_nodes, dtype=float))
+    x_bottom = pts[bottom_nodes, 0]
+    x_center = 0.5 * (np.min(x_bottom) + np.max(x_bottom))
+    anchor = int(bottom_nodes[np.argmin(np.abs(x_bottom - x_center))])
+    fixed_dofs.append(2 * anchor)
+    fixed_vals.append(0.0)
+
+    u = solve_dirichlet_elimination(K, f, np.asarray(fixed_dofs, dtype=int), np.asarray(fixed_vals, dtype=float))
+    sig_cell, vm_cell = compute_cell_stress_vonmises(cfg, pts, quad, u, E_elem)
+    return {
+        "pts": pts,
+        "conn": quad,
+        "u": u,
+        "E_elem": E_elem,
+        "centroids": centroids,
+        "sigma_cell": sig_cell,
+        "von_mises_cell": vm_cell,
+    }
+
+
+def run_single_realization_with_overrides(
+    run_dir: Path,
+    realization_id: int,
+    material_overrides: Optional[dict] = None,
+    stochastic_field_overrides: Optional[dict] = None,
+    write_outputs: bool = True,
+) -> dict:
+    """
+    Public programmatic API for one stochastic/deterministic realization.
+    """
+    run_dir = Path(run_dir)
+    cfg = SolverConfig(run_dir=run_dir, run_name=run_dir.name)
+    runtime_cfg = load_runtime_config(run_dir / "runtime_config.json")
+    geom_cfg = runtime_cfg.get("geometry", {})
+    mat_cfg = runtime_cfg.get("material", {})
+    if geom_cfg:
+        cfg.geometry_type = geom_cfg.get("geometry_type", cfg.geometry_type)
+        cfg.W = float(geom_cfg.get("W", cfg.W))
+        cfg.H = float(geom_cfg.get("H", cfg.H))
+        cfg.a = float(geom_cfg.get("a", cfg.a))
+    if mat_cfg:
+        cfg.E_mean = float(mat_cfg.get("E_mean", mat_cfg.get("E", cfg.E_mean)))
+        cfg.nu = float(mat_cfg.get("nu", cfg.nu))
+        cfg.plane_stress = bool(mat_cfg.get("plane_stress", cfg.plane_stress))
+    if material_overrides:
+        if "E" in material_overrides:
+            cfg.E_mean = float(material_overrides["E"])
+        if "E_mean" in material_overrides:
+            cfg.E_mean = float(material_overrides["E_mean"])
+        if "nu" in material_overrides:
+            cfg.nu = float(material_overrides["nu"])
+    if stochastic_field_overrides:
+        cfg.E_mode = stochastic_field_overrides.get("E_mode", cfg.E_mode)
+        if "E_rel_std" in stochastic_field_overrides:
+            cfg.E_rel_std = float(stochastic_field_overrides["E_rel_std"])
+
+    fields = solve_from_material_field(
+        mesh_path=run_dir / cfg.msh_name,
+        material_field=stochastic_field_overrides.get("material_field") if stochastic_field_overrides else None,
+        E_scalar=cfg.E_mean,
+        nu_scalar=cfg.nu,
+        config=cfg,
+    )
+
+    suffix = f"_mc{realization_id:04d}"
+    if write_outputs:
+        write_vtk(run_dir / f"solution_q4{suffix}.vtk", fields["pts"], fields["conn"], fields["u"], fields["sigma_cell"], fields["von_mises_cell"], fields["E_elem"])
+        np.savez(
+            run_dir / f"fields{suffix}.npz",
+            pts=fields["pts"],
+            conn=fields["conn"],
+            u=fields["u"],
+            E_elem=fields["E_elem"],
+            centroids=fields["centroids"],
+        )
+        meta = asdict(cfg)
+        for k, v in list(meta.items()):
+            if isinstance(v, Path):
+                meta[k] = str(v)
+        meta["tip"] = list(crack_tip_xy(cfg))
+        meta["crack_start"] = list(crack_start_xy(cfg))
+        meta["crack_dir"] = [1.0, 0.0]
+        meta["realization_id"] = int(realization_id)
+        meta["E_elem_mean"] = float(np.mean(fields["E_elem"]))
+        meta["E_elem_std"] = float(np.std(fields["E_elem"]))
+        (run_dir / f"metadata{suffix}.json").write_text(json.dumps(meta, indent=2), encoding="utf-8")
+
+    return {
+        "run_dir": str(run_dir),
+        "realization_id": int(realization_id),
+        "fields_path": str(run_dir / f"fields{suffix}.npz"),
+        "metadata_path": str(run_dir / f"metadata{suffix}.json"),
+        "E_mean": float(np.mean(fields["E_elem"])),
+        "E_std": float(np.std(fields["E_elem"])),
+    }
+
+
 def main():
     setup_logging()
     cfg = SolverConfig()

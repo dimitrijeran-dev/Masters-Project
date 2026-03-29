@@ -1079,6 +1079,46 @@ def run_one_validation(
     return summary
 
 
+def validate_single_realization(
+    run_dir: Path,
+    realization_id: int,
+    compute_jstar: bool = True,
+    compute_dcm: bool = True,
+    dcm_window: Optional[Dict[str, float]] = None,
+) -> Dict[str, Any]:
+    """
+    Reusable per-case validator for stochastic or collocation workflows.
+    """
+    cfg = ValConfig(run_dir=Path(run_dir), run_all_realizations=False, realization_id=realization_id)
+    cfg.use_interaction_integral_for_stochastic = not compute_jstar
+    cfg.enable_dcm_from_fields = bool(compute_dcm)
+    if dcm_window:
+        cfg.dcm_r_min = float(dcm_window.get("r_min", cfg.dcm_r_min))
+        cfg.dcm_r_max = float(dcm_window.get("r_max", cfg.dcm_r_max))
+    summary = run_one_validation(cfg, realization_id=realization_id, manifest_hash=None)
+    dcm = summary.get("dcm") if isinstance(summary.get("dcm"), dict) else {}
+    return {
+        "KI_Jstar": summary.get("KI_ref") if compute_jstar else None,
+        "KI_DCM": dcm.get("KI_ref") if compute_dcm else None,
+        "jstar_window": {
+            "best_idx": summary.get("best_idx"),
+            "best_r_out": summary.get("best_r_out"),
+            "KI_list": summary.get("KI_list"),
+            "r_out_list": summary.get("r_out_list"),
+        },
+        "dcm_window": {
+            "r_min": dcm.get("r_min"),
+            "r_max": dcm.get("r_max"),
+            "n_samples": dcm.get("n_samples"),
+            "n_inliers": dcm.get("n_inliers"),
+        } if dcm else None,
+        "artifact_paths": {
+            "summary": str(Path(run_dir) / f"validation_summary_mc{realization_id:04d}.json"),
+            "fields": str(Path(run_dir) / f"fields_mc{realization_id:04d}.npz"),
+        },
+    }
+
+
 def write_all_realization_summaries(run_dir: Path, summaries: List[dict]) -> None:
     if not summaries:
         return
