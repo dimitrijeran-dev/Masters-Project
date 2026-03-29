@@ -38,6 +38,8 @@ from dataclasses import dataclass, asdict
 from pathlib import Path
 from typing import Optional, Tuple, List
 
+from src.configs.run_io import load_runtime_config, update_runtime_config
+
 import matplotlib.pyplot as plt
 import meshio
 import numpy as np
@@ -730,6 +732,13 @@ def run_one_validation(cfg: ValConfig, realization_id: Optional[int]) -> None:
 def main():
     setup_logging()
     cfg = ValConfig()
+    runtime_cfg_path = cfg.run_dir / "runtime_config.json"
+    runtime_cfg = load_runtime_config(runtime_cfg_path)
+    mat_cfg = runtime_cfg.get("material", {})
+    if mat_cfg:
+        cfg.E = float(mat_cfg.get("E", mat_cfg.get("E_mean", cfg.E)))
+        cfg.nu = float(mat_cfg.get("nu", cfg.nu))
+        cfg.plane_stress = bool(mat_cfg.get("plane_stress", cfg.plane_stress))
 
     if cfg.run_all_realizations:
         ids = discover_realization_ids(cfg.run_dir, cfg.realization_glob)
@@ -741,8 +750,18 @@ def main():
         logging.info(f"Found realization IDs: {ids}")
         for rid in ids:
             run_one_validation(cfg, rid)
+        update_runtime_config(
+            runtime_cfg_path,
+            stage="validation",
+            updates={"stage": {"validated_realization_ids": ids, "summary_pattern": "validation_summary_mc*.json"}},
+        )
     else:
         run_one_validation(cfg, cfg.realization_id)
+        update_runtime_config(
+            runtime_cfg_path,
+            stage="validation",
+            updates={"stage": {"validated_realization_ids": [cfg.realization_id], "summary_pattern": "validation_summary*.json"}},
+        )
 
 
 if __name__ == "__main__":

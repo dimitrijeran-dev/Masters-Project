@@ -24,7 +24,6 @@ import scipy.sparse.linalg as spla
 import meshio
 from typing import Optional
 
-from datetime import datetime
 import json
 
 import sys
@@ -33,6 +32,9 @@ from pathlib import Path
 # Add project root (Masters-Project/) to Python path
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(PROJECT_ROOT))
+from src.configs.geometry import geometry_payload
+from src.configs.material import material_payload
+from src.configs.run_io import load_runtime_config, update_runtime_config
 
 # ----------------------------
 # Config
@@ -632,6 +634,21 @@ def main():
     cfg.out_vtk = cfg.run_dir / "solution_q4.vtk"
     cfg.out_npz = cfg.run_dir / "fields.npz"
     cfg.meta_path = cfg.run_dir / "metadata.json"
+    runtime_cfg_path = cfg.run_dir / "runtime_config.json"
+
+    runtime_cfg = load_runtime_config(runtime_cfg_path)
+    geom_cfg = runtime_cfg.get("geometry", {})
+    mat_cfg = runtime_cfg.get("material", {})
+    if geom_cfg:
+        cfg.W = float(geom_cfg.get("W", cfg.W))
+        cfg.H = float(geom_cfg.get("H", cfg.H))
+        cfg.a = float(geom_cfg.get("a", cfg.a))
+        cfg.crack_gap = float(geom_cfg.get("crack_gap", cfg.crack_gap))
+    if mat_cfg:
+        cfg.E = float(mat_cfg.get("E", cfg.E))
+        cfg.nu = float(mat_cfg.get("nu", cfg.nu))
+        cfg.plane_stress = bool(mat_cfg.get("plane_stress", cfg.plane_stress))
+        cfg.thickness = float(mat_cfg.get("thickness", cfg.thickness))
 
     logging.info(f"Reading mesh: {cfg.msh_path}")
     pts, quad, lines, line_phys, phys_map = read_gmsh_quad_mesh(cfg.msh_path)
@@ -731,6 +748,39 @@ def main():
     )
     
     save_metadata(cfg, J, KI)
+    update_runtime_config(
+        runtime_cfg_path,
+        stage="solver",
+        updates={
+            "run": {"name": cfg.run_name, "run_dir": cfg.run_dir},
+            "geometry": geometry_payload(
+                geometry_type="plate_edge_crack",
+                W=cfg.W,
+                H=cfg.H,
+                a=cfg.a,
+                crack_gap=cfg.crack_gap,
+            ),
+            "material": material_payload(
+                E=cfg.E,
+                nu=cfg.nu,
+                plane_stress=cfg.plane_stress,
+                thickness=cfg.thickness,
+            ),
+            "stage": {
+                "mesh_path": cfg.msh_path,
+                "solution_vtk": cfg.out_vtk,
+                "fields_npz": cfg.out_npz,
+                "metadata_json": cfg.meta_path,
+                "resolved": {
+                    "J": float(J),
+                    "KI": float(KI),
+                    "tip": [cfg.a, 0.0],
+                    "crack_start": [0.0, 0.0],
+                    "crack_dir": [1.0, 0.0],
+                },
+            },
+        },
+    )
 
     res = sweep_J_rout(
         pts=pts, conn=quad, U=u, tip=tip,
