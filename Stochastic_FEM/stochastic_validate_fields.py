@@ -718,6 +718,33 @@ def plot_KII_vs_rout(r_outs, KII_vals, out_png: Path):
     plt.close()
 
 
+def plot_dcm_ki_vs_r(samples: List[Dict[str, Any]], ki_ref: float, out_png: Path):
+    if not samples:
+        return
+    r = np.asarray([float(s["r"]) for s in samples], dtype=float)
+    ki = np.asarray([float(s["KI"]) for s in samples], dtype=float)
+    valid = np.isfinite(r) & np.isfinite(ki) & (r > 0.0)
+    if not np.any(valid):
+        return
+
+    order = np.argsort(r[valid])
+    r_use = r[valid][order]
+    ki_use = ki[valid][order]
+
+    plt.figure()
+    plt.plot(r_use, ki_use, marker="o", label="DCM pointwise $K_I$")
+    plt.axhline(float(ki_ref), linestyle="--", label="DCM fitted $K_I$")
+    plt.xscale("log")
+    plt.xlabel("r behind tip (m)")
+    plt.ylabel("DCM $K_I$ (Pa*sqrt(m))")
+    plt.title("DCM $K_I$ vs radial distance")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_png, dpi=220, bbox_inches="tight")
+    plt.close()
+
+
 
 def write_csv(path: Path, r_vals, sigma_yy, vm):
     with open(path, "w", newline="", encoding="utf-8") as f:
@@ -971,6 +998,11 @@ def run_one_validation(
             ki_dcm = float(dcm_summary["KI_ref"])
             summary["KI_ref_dcm"] = ki_dcm
             summary["KI_ref_dcm_delta_to_J"] = float((ki_dcm - KI_ref) / max(abs(KI_ref), 1e-30))
+            plot_dcm_ki_vs_r(
+                samples=dcm_summary.get("samples", []),
+                ki_ref=ki_dcm,
+                out_png=cfg.run_dir / f"dcm_KI_vs_r{suffix}.png",
+            )
         
     (cfg.run_dir / f"validation_summary{suffix}.json").write_text(
             json.dumps(summary, indent=2), encoding="utf-8"
