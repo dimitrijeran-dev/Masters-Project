@@ -32,6 +32,10 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 from src.run_manifest import load_run_manifest, write_run_manifest
 
+from src.configs.geometry import geometry_payload
+from src.configs.material import material_payload
+from src.configs.run_io import load_runtime_config, update_runtime_config
+
 
 @dataclass
 class SolverConfig:
@@ -670,6 +674,27 @@ def main():
             },
         )
 
+    runtime_cfg_path = cfg.run_dir / "runtime_config.json"
+    runtime_cfg = load_runtime_config(runtime_cfg_path)
+    geom_cfg = runtime_cfg.get("geometry", {})
+    mat_cfg = runtime_cfg.get("material", {})
+    if geom_cfg:
+        cfg.geometry_type = geom_cfg.get("geometry_type", cfg.geometry_type)
+        cfg.W = float(geom_cfg.get("W", cfg.W))
+        cfg.H = float(geom_cfg.get("H", cfg.H))
+        cfg.a = float(geom_cfg.get("a", cfg.a))
+        cfg.crack_gap = float(geom_cfg.get("crack_gap", cfg.crack_gap))
+        if "hole_radius" in geom_cfg:
+            cfg.hole_radius = float(geom_cfg["hole_radius"])
+        if "hole_center" in geom_cfg:
+            hc = geom_cfg["hole_center"]
+            cfg.hole_center = (float(hc[0]), float(hc[1]))
+    if mat_cfg:
+        cfg.nu = float(mat_cfg.get("nu", cfg.nu))
+        cfg.plane_stress = bool(mat_cfg.get("plane_stress", cfg.plane_stress))
+        cfg.thickness = float(mat_cfg.get("thickness", cfg.thickness))
+        cfg.E_mean = float(mat_cfg.get("E_mean", mat_cfg.get("E", cfg.E_mean)))
+
     msh_path = cfg.run_dir / cfg.msh_name
     if not msh_path.exists():
         raise FileNotFoundError(f"Missing mesh file: {msh_path}. Run stochastic_mesh.py first.")
@@ -684,6 +709,41 @@ def main():
 
     for i in range(cfg.n_realizations):
         solve_one(cfg, i, kl_data=kl_data, manifest_hash=manifest_hash)
+
+    shared_geometry = geometry_payload(
+        geometry_type=cfg.geometry_type,
+        W=cfg.W,
+        H=cfg.H,
+        a=cfg.a,
+        crack_gap=cfg.crack_gap,
+        hole_radius=cfg.hole_radius if cfg.geometry_type == "plate_hole_edge_crack" else None,
+        hole_center=cfg.hole_center if cfg.geometry_type == "plate_hole_edge_crack" else None,
+    )
+    update_runtime_config(
+        runtime_cfg_path,
+        stage="solver",
+        updates={
+            "run": {"name": cfg.run_name, "run_dir": cfg.run_dir},
+            "geometry": shared_geometry,
+            "material": material_payload(
+                E=cfg.E_mean,
+                E_mean=cfg.E_mean,
+                nu=cfg.nu,
+                plane_stress=cfg.plane_stress,
+                thickness=cfg.thickness,
+            ),
+            "stage": {
+                "mesh_path": msh_path,
+                "n_realizations": cfg.n_realizations,
+                "fields_pattern": "fields_mc*.npz" if cfg.n_realizations > 1 else "fields.npz",
+                "resolved": {
+                    "tip": shared_geometry["tip"],
+                    "crack_start": shared_geometry["crack_start"],
+                    "crack_dir": shared_geometry["crack_dir"],
+                },
+            },
+        },
+    )
 
 
 if __name__ == "__main__":

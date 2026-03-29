@@ -38,6 +38,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Any
 
+from src.configs.run_io import load_runtime_config, update_runtime_config
+
 import matplotlib.pyplot as plt
 import meshio
 import numpy as np
@@ -1123,6 +1125,13 @@ def run_crack_length_lifing_comparison(cfg: ValConfig) -> None:
 def main():
     setup_logging()
     cfg = ValConfig()
+    runtime_cfg_path = cfg.run_dir / "runtime_config.json"
+    runtime_cfg = load_runtime_config(runtime_cfg_path)
+    mat_cfg = runtime_cfg.get("material", {})
+    if mat_cfg:
+        cfg.E = float(mat_cfg.get("E", mat_cfg.get("E_mean", cfg.E)))
+        cfg.nu = float(mat_cfg.get("nu", cfg.nu))
+        cfg.plane_stress = bool(mat_cfg.get("plane_stress", cfg.plane_stress))
     manifest_path = cfg.run_dir / "run_manifest.json"
     if manifest_path.exists():
         manifest = load_run_manifest(cfg.run_dir)
@@ -1166,6 +1175,19 @@ def main():
         write_all_realization_summaries(cfg.run_dir, summaries)
         summaries: List[Dict[str, Any]] = []
         for rid in ids:
+            run_one_validation(cfg, rid)
+        update_runtime_config(
+            runtime_cfg_path,
+            stage="validation",
+            updates={"stage": {"validated_realization_ids": ids, "summary_pattern": "validation_summary_mc*.json"}},
+        )
+    else:
+        run_one_validation(cfg, cfg.realization_id)
+        update_runtime_config(
+            runtime_cfg_path,
+            stage="validation",
+            updates={"stage": {"validated_realization_ids": [cfg.realization_id], "summary_pattern": "validation_summary*.json"}},
+        )
             run_one_validation(cfg, rid, manifest_hash=manifest_hash)
             summaries.append(run_one_validation(cfg, rid))
         write_aggregate_summary(cfg, summaries)

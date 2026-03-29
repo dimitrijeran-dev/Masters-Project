@@ -28,8 +28,8 @@ Notes
 
 from __future__ import annotations
 
-import json
 import logging
+import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Optional, Tuple
@@ -38,6 +38,10 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 from src.run_manifest import write_run_manifest
+
+from src.configs.geometry import geometry_payload
+from src.configs.material import material_payload
+from src.configs.run_io import update_runtime_config
 
 
 # ---------------------------------------------------------------------
@@ -346,16 +350,49 @@ def build_mesh_gmsh_quads(cfg: MeshConfig, msh_path: Path) -> None:
         # -------------------------------------------------------------
         # Metadata
         # -------------------------------------------------------------
-        meta = jsonable_dict(asdict(cfg))
-        meta["tip"] = list(crack_tip_xy(cfg))
-        meta["crack_start"] = list(crack_start_xy(cfg))
-        meta["crack_dir"] = [1.0, 0.0]
-
+        runtime_cfg_path = cfg.out_dir / "runtime_config.json"
         meta_path = cfg.out_dir / "geometry_metadata.json"
+
+        shared_geometry = geometry_payload(
+            geometry_type=cfg.geometry_type,
+            W=cfg.W,
+            H=cfg.H,
+            a=cfg.a,
+            crack_gap=cfg.crack_gap,
+            hole_radius=cfg.hole_radius if cfg.geometry_type == "plate_hole_edge_crack" else None,
+            hole_center=cfg.hole_center if cfg.geometry_type == "plate_hole_edge_crack" else None,
+        )
+
+        update_runtime_config(
+            runtime_cfg_path,
+            stage="mesh",
+            updates={
+                "run": {"name": cfg.run_name, "base_out_dir": cfg.base_out_dir, "run_dir": cfg.out_dir},
+                "geometry": shared_geometry,
+                "material": material_payload(E=73.1e9, nu=0.33, plane_stress=True),
+                "stage": {
+                    "mesh_path": msh_path,
+                    "mesh_sizing": {
+                        "lc_global": cfg.lc_global,
+                        "lc_tip": cfg.lc_tip,
+                        "tip_refine_r": cfg.tip_refine_r,
+                    },
+                    "resolved": {
+                        "tip": shared_geometry["tip"],
+                        "crack_start": shared_geometry["crack_start"],
+                        "crack_dir": shared_geometry["crack_dir"],
+                    },
+                },
+            },
+        )
+
+        meta = jsonable_dict(asdict(cfg))
+        meta.update(shared_geometry)
         meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
         logging.info(f"Saved mesh to: {msh_path}")
         logging.info(f"Saved metadata to: {meta_path}")
+        logging.info(f"Saved runtime config to: {runtime_cfg_path}")
 
     finally:
         gmsh.finalize()

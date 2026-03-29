@@ -38,6 +38,7 @@ from src.run_manifest import load_run_manifest, write_run_manifest, ensure_summa
 
 # --- import your J-integral functions ---
 from src.J_Integral import compute_J_domain_q4, sweep_J_rout
+from src.configs.run_io import load_runtime_config, update_runtime_config
 
 # ----------------------------
 # Config
@@ -492,6 +493,21 @@ def main():
     cfg.vtu_path = cfg.run_dir / "solution_q4.vtu"
     cfg.npz_path = cfg.run_dir / "fields.npz"
     cfg.export_csv = cfg.run_dir / "validation_line.csv"
+    runtime_cfg_path = cfg.run_dir / "runtime_config.json"
+
+    runtime_cfg = load_runtime_config(runtime_cfg_path)
+    geom_cfg = runtime_cfg.get("geometry", {})
+    mat_cfg = runtime_cfg.get("material", {})
+    if geom_cfg:
+        cfg.a = float(geom_cfg.get("a", cfg.a))
+        cfg.W = float(geom_cfg.get("W", cfg.W))
+        cfg.H = float(geom_cfg.get("H", cfg.H))
+        cfg.tip = tuple(geom_cfg.get("tip", cfg.tip))
+        cfg.crack_dir = tuple(geom_cfg.get("crack_dir", cfg.crack_dir))
+    if mat_cfg:
+        cfg.E = float(mat_cfg.get("E", cfg.E))
+        cfg.nu = float(mat_cfg.get("nu", cfg.nu))
+        cfg.plane_stress = bool(mat_cfg.get("plane_stress", cfg.plane_stress))
     manifest_path = cfg.run_dir / "run_manifest.json"
     if manifest_path.exists():
         manifest = load_run_manifest(cfg.run_dir)
@@ -606,6 +622,23 @@ def main():
     "JK_relative_residual": float(JK_resid),
     "Y_est": float(Y),
     }
+    summary_path = outdir / "validation_summary.json"
+    write_summary_json(summary_path, summary)
+
+    update_runtime_config(
+        runtime_cfg_path,
+        stage="validation",
+        updates={
+            "stage": {
+                "validation_summary": summary_path,
+                "validation_csv": cfg.export_csv,
+                "resolved": {
+                    "KI_ref": float(KI_ref),
+                    "J_ref": float(J_ref),
+                    "best_r_out": float(r_outs[best_idx]),
+                },
+            },
+        },
     write_summary_json(
         outdir / "validation_summary.json",
         ensure_summary_manifest_hash(summary, manifest_hash),

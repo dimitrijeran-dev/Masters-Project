@@ -11,6 +11,10 @@ import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 import meshio
 
+from src.configs.geometry import geometry_payload
+from src.configs.material import material_payload
+from src.configs.run_io import update_runtime_config
+
 from datetime import datetime
 import json
 from src.run_manifest import write_run_manifest
@@ -426,6 +430,7 @@ def main():
     logging.info(f"Run manifest hash: {manifest_hash}")
 
     msh_path = cfg.out_dir / "plate_edge_crack_q4.msh"
+    runtime_cfg_path = cfg.out_dir / "runtime_config.json"
 
     build_mesh_gmsh_quads(cfg, msh_path)
     pts, quad, lines, line_phys, phys_map = read_msh_quads(msh_path)
@@ -454,6 +459,45 @@ def main():
 
     umax = np.max(np.sqrt(u[0::2]**2 + u[1::2]**2))
     logging.info(f"Max |U| = {umax:.6e} m")
+
+    update_runtime_config(
+        runtime_cfg_path,
+        stage="mesh",
+        updates={
+            "run": {
+                "name": cfg.run_name,
+                "base_out_dir": cfg.base_out_dir,
+                "run_dir": cfg.out_dir,
+                "runtime_config": runtime_cfg_path,
+            },
+            "geometry": geometry_payload(
+                geometry_type="plate_edge_crack",
+                W=cfg.W,
+                H=cfg.H,
+                a=cfg.a,
+                crack_gap=cfg.crack_gap,
+            ),
+            "material": material_payload(
+                E=cfg.E,
+                nu=cfg.nu,
+                plane_stress=cfg.plane_stress,
+                thickness=cfg.thickness,
+            ),
+            "stage": {
+                "mesh_path": msh_path,
+                "mesh_sizing": {
+                    "lc_global": cfg.lc_global,
+                    "lc_tip": cfg.lc_tip,
+                    "tip_refine_r": cfg.tip_refine_r,
+                },
+                "resolved": {
+                    "tip": [cfg.a, 0.0],
+                    "crack_start": [0.0, 0.0],
+                    "crack_dir": [1.0, 0.0],
+                },
+            },
+        },
+    )
 
 
 if __name__ == "__main__":
