@@ -101,6 +101,7 @@ class ValConfig:
     E_tip_for_aux: Optional[float] = None
     interaction_modes: Tuple[str, ...] = ("I", "II")
     interaction_use_inhomogeneity_correction: bool = True
+    interaction_force_mode_I_positive: bool = True
     interaction_take_abs_KI: bool = True
 
     # Output control
@@ -695,13 +696,17 @@ def plot_J_vs_rout(r_outs, J_vals, best_idx, out_png: Path):
     plt.close()
 
 
-def plot_KI_vs_rout(r_outs, KI_vals, out_png: Path):
+def plot_KI_vs_rout(r_outs, KI_vals, out_png: Path, best_idx: Optional[int] = None):
     plt.figure()
-    plt.plot(r_outs, KI_vals, marker="o")
+    plt.plot(r_outs, KI_vals, marker="o", label=r"$K_I$")
+    if best_idx is not None and 0 <= best_idx < len(r_outs):
+        plt.plot(r_outs[best_idx], KI_vals[best_idx], marker="s", markersize=10, label="selected $K_I$")
+        plt.axhline(float(KI_vals[best_idx]), linestyle="--", alpha=0.7)
     plt.xlabel("r_out (m)")
     plt.ylabel("K_I from J (Pa*sqrt(m))")
     plt.title("K_I vs J-domain outer radius")
     plt.grid(True)
+    plt.legend()
     plt.tight_layout()
     plt.savefig(out_png, dpi=220, bbox_inches="tight")
     plt.close()
@@ -756,15 +761,38 @@ def write_csv(path: Path, r_vals, sigma_yy, vm):
 
 def choose_best_idx(r_outs: List[float], KI_vals: List[float]) -> int:
     """
-    Simple plateau-ish choice:
-    pick the contour with the smallest deviation from the mean of the last half.
+    Plateau-biased selection with an inner-contour preference.
+
+    We score local flatness (slope + local scatter) on a 3-point stencil and
+    intentionally prioritize inner contours because large outer contours are
+    more likely to be contaminated by boundary effects.
     """
     arr = np.asarray(KI_vals, dtype=float)
     n = len(arr)
-    tail = arr[n // 2:]
-    ref = float(np.mean(tail))
-    idx = int(np.argmin(np.abs(arr - ref)))
-    return idx
+    if n <= 2:
+        return int(np.argmax(arr))
+
+    r = np.asarray(r_outs, dtype=float)
+    r_span = float(max(np.max(r) - np.min(r), 1e-30))
+    candidate_stop = max(2, int(np.ceil(0.6 * n)))  # favor first ~60% contours
+
+    best_idx = 1
+    best_score = float("inf")
+    for i in range(1, min(n - 1, candidate_stop)):
+        rr = r[i - 1:i + 2]
+        kk = arr[i - 1:i + 2]
+        A = np.vstack([rr, np.ones_like(rr)]).T
+        slope, _ = np.linalg.lstsq(A, kk, rcond=None)[0]
+        k_med = float(np.median(kk))
+        slope_norm = abs(float(slope)) * r_span / (abs(k_med) + 1e-30)
+        scatter = float(np.std(kk) / (abs(k_med) + 1e-30))
+        inner_bias = float(i / max(n - 1, 1))
+        score = slope_norm + 0.4 * scatter + 0.25 * inner_bias
+        if score < best_score:
+            best_score = score
+            best_idx = i
+
+    return int(best_idx)
 
 
 def relative_span(vals: List[float], ref_val: float) -> float:
@@ -824,6 +852,7 @@ def run_one_validation(
             "Interaction integral requested but sweep_interaction_rout is unavailable. Falling back to corrected_J_star."
         )
 
+    interaction_sign_correction = 1.0
     if use_interaction:
         E_tip = cfg.E_tip_for_aux if cfg.E_tip_for_aux is not None else E_scalar
 
@@ -851,6 +880,10 @@ def run_one_validation(
 
         r_outs = [float(s.r_out) for s in sweep]
         KI_signed_vals = [float(s.KI) for s in sweep]
+        if cfg.interaction_force_mode_I_positive and float(np.median(KI_signed_vals)) < 0.0:
+            interaction_sign_correction = -1.0
+        KI_vals = [float(interaction_sign_correction * v) for v in KI_signed_vals]
+        KII_vals = [float(interaction_sign_correction * s.KII) for s in sweep]
         KI_vals = [abs(v) for v in KI_signed_vals] if cfg.interaction_take_abs_KI else KI_signed_vals
         KII_vals = [float(s.KII) for s in sweep]
         J_vals = None
@@ -921,7 +954,7 @@ def run_one_validation(
     if KII_vals is not None:
         plot_KII_vs_rout(r_outs, KII_vals, cfg.run_dir / f"KII_vs_rout{suffix}.png")
 
-    plot_KI_vs_rout(r_outs, KI_vals, cfg.run_dir / f"KI_vs_rout{suffix}.png")
+    plot_KI_vs_rout(r_outs, KI_vals, cfg.run_dir / f"KI_vs_rout{suffix}.png", best_idx=best_idx)
     plot_stress_line(r_vals, sigma_yy, vm, cfg.run_dir / f"sigma_yy_and_vonmises_vs_r{suffix}.png")
     plot_sigma_sqrt_2pir(r_vals, sigma_yy, KI_ref, cfg.run_dir / f"sigma_sqrt_2pir_vs_r{suffix}.png")
 
@@ -952,6 +985,8 @@ def run_one_validation(
         "applied": bool(use_interaction),
         "modes": list(cfg.interaction_modes),
         "use_inhomogeneity_correction": bool(cfg.interaction_use_inhomogeneity_correction),
+        "force_mode_I_positive": bool(cfg.interaction_force_mode_I_positive),
+        "sign_correction_factor": float(interaction_sign_correction),
         "take_abs_KI": bool(cfg.interaction_take_abs_KI),
         "E_tip_for_aux": float(E_tip) if use_interaction else (float(cfg.E_tip_for_aux) if cfg.E_tip_for_aux is not None else None),
         "interaction_impl_available": bool(sweep_interaction_rout is not None),
@@ -978,6 +1013,8 @@ def run_one_validation(
         summary["KII_list"] = KII_vals
         summary["KII_ref"] = float(KII_vals[best_idx])
     if use_interaction:
+        summary["KI_raw_list"] = KI_signed_vals
+        summary["KI_ref_raw"] = float(KI_signed_vals[best_idx])
         summary["KI_signed_list"] = KI_signed_vals
         summary["KI_ref_signed"] = float(KI_signed_vals[best_idx])
 
@@ -1253,6 +1290,9 @@ def main():
             merged_val_cfg.get("interaction_use_inhomogeneity_correction"),
             cfg.interaction_use_inhomogeneity_correction,
         )
+        cfg.interaction_force_mode_I_positive = _as_bool(
+            merged_val_cfg.get("interaction_force_mode_I_positive"),
+            cfg.interaction_force_mode_I_positive,
         cfg.interaction_take_abs_KI = _as_bool(
             merged_val_cfg.get("interaction_take_abs_KI"),
             cfg.interaction_take_abs_KI,
@@ -1295,6 +1335,7 @@ def main():
                     "use_interaction_integral_for_stochastic": cfg.use_interaction_integral_for_stochastic,
                     "interaction_modes": list(cfg.interaction_modes),
                     "interaction_use_inhomogeneity_correction": cfg.interaction_use_inhomogeneity_correction,
+                    "interaction_force_mode_I_positive": cfg.interaction_force_mode_I_positive,
                     "interaction_take_abs_KI": cfg.interaction_take_abs_KI,
                     "E_tip_for_aux": cfg.E_tip_for_aux,
                 },
