@@ -100,6 +100,9 @@ class ValConfig:
     use_interaction_integral_for_stochastic: bool = True
     E_tip_for_aux: Optional[float] = None
     interaction_modes: Tuple[str, ...] = ("I", "II")
+    interaction_formulation: str = "constant_tensor"
+    interaction_use_inhomogeneity_correction: bool = True
+    interaction_force_mode_I_positive: bool = True
     interaction_use_inhomogeneity_correction: bool = True
     interaction_force_mode_I_positive: bool = True
     interaction_take_abs_KI: bool = True
@@ -169,6 +172,21 @@ def _as_interaction_modes(value: Any, default: Tuple[str, ...]) -> Tuple[str, ..
         if token in {"I", "II"} and token not in out:
             out.append(token)
     return tuple(out) if out else default
+
+
+def _as_interaction_formulation(value: Any, default: str) -> str:
+    if value is None:
+        return default
+    token = str(value).strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "constant": "constant_tensor",
+        "constant_constitutive_tensor": "constant_tensor",
+        "constant_tensor": "constant_tensor",
+        "incompatibility": "incompatibility",
+        "nonequilibrium": "nonequilibrium",
+        "non_equilibrium": "nonequilibrium",
+    }
+    return aliases.get(token, default)
 
 
 def crack_tip_xy(meta: dict) -> np.ndarray:
@@ -851,6 +869,12 @@ def run_one_validation(
         logging.warning(
             "Interaction integral requested but sweep_interaction_rout is unavailable. Falling back to corrected_J_star."
         )
+    formulation = cfg.interaction_formulation
+    if use_interaction and formulation != "constant_tensor":
+        raise NotImplementedError(
+            f"interaction_formulation={formulation!r} is not implemented in this code path. "
+            "Supported formulation: 'constant_tensor'."
+        )
 
     interaction_sign_correction = 1.0
     if use_interaction:
@@ -882,6 +906,11 @@ def run_one_validation(
         KI_signed_vals = [float(s.KI) for s in sweep]
         if cfg.interaction_force_mode_I_positive and float(np.median(KI_signed_vals)) < 0.0:
             interaction_sign_correction = -1.0
+            logging.warning(
+                "Interaction integral returned negative median KI for an opening crack; applying global sign correction factor -1."
+            )
+        KI_vals = [float(interaction_sign_correction * v) for v in KI_signed_vals]
+        KII_vals = [float(interaction_sign_correction * s.KII) for s in sweep]
         KI_vals = [float(interaction_sign_correction * v) for v in KI_signed_vals]
         KII_vals = [float(interaction_sign_correction * s.KII) for s in sweep]
         KI_vals = [abs(v) for v in KI_signed_vals] if cfg.interaction_take_abs_KI else KI_signed_vals
@@ -983,6 +1012,7 @@ def run_one_validation(
     "interaction_settings": {
         "requested": bool(cfg.use_interaction_integral_for_stochastic),
         "applied": bool(use_interaction),
+        "formulation": formulation,
         "modes": list(cfg.interaction_modes),
         "use_inhomogeneity_correction": bool(cfg.interaction_use_inhomogeneity_correction),
         "force_mode_I_positive": bool(cfg.interaction_force_mode_I_positive),
@@ -1282,6 +1312,10 @@ def main():
         )
         if merged_val_cfg.get("E_tip_for_aux") is not None:
             cfg.E_tip_for_aux = float(merged_val_cfg.get("E_tip_for_aux"))
+        cfg.interaction_formulation = _as_interaction_formulation(
+            merged_val_cfg.get("interaction_formulation"),
+            cfg.interaction_formulation,
+        )
         cfg.interaction_modes = _as_interaction_modes(
             merged_val_cfg.get("interaction_modes"),
             cfg.interaction_modes,
@@ -1333,6 +1367,10 @@ def main():
                     "r_out_list": list(cfg.r_out_list),
                     "crack_face_exclusion": cfg.crack_face_exclusion,
                     "use_interaction_integral_for_stochastic": cfg.use_interaction_integral_for_stochastic,
+                    "interaction_formulation": cfg.interaction_formulation,
+                    "interaction_modes": list(cfg.interaction_modes),
+                    "interaction_use_inhomogeneity_correction": cfg.interaction_use_inhomogeneity_correction,
+                    "interaction_force_mode_I_positive": cfg.interaction_force_mode_I_positive,
                     "interaction_modes": list(cfg.interaction_modes),
                     "interaction_use_inhomogeneity_correction": cfg.interaction_use_inhomogeneity_correction,
                     "interaction_force_mode_I_positive": cfg.interaction_force_mode_I_positive,
