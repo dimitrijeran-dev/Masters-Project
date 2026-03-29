@@ -99,6 +99,9 @@ class ValConfig:
     # Interaction Integral
     use_interaction_integral_for_stochastic: bool = False
     E_tip_for_aux: Optional[float] = None
+    interaction_modes: Tuple[str, ...] = ("I", "II")
+    interaction_use_inhomogeneity_correction: bool = True
+    interaction_force_mode_I_positive: bool = True
 
     # Output control
     export_csv: bool = True
@@ -147,6 +150,24 @@ def _as_bool(value: Any, default: bool) -> bool:
         if v in {"0", "false", "no", "n", "off"}:
             return False
     return bool(value)
+
+
+def _as_interaction_modes(value: Any, default: Tuple[str, ...]) -> Tuple[str, ...]:
+    if value is None:
+        return default
+    if isinstance(value, str):
+        raw = [value]
+    else:
+        try:
+            raw = list(value)
+        except TypeError:
+            return default
+    out: List[str] = []
+    for item in raw:
+        token = str(item).strip().upper()
+        if token in {"I", "II"} and token not in out:
+            out.append(token)
+    return tuple(out) if out else default
 
 
 def crack_tip_xy(meta: dict) -> np.ndarray:
@@ -293,10 +314,15 @@ def estimate_dcm_from_fields(
         "window": [cfg.dcm_r_min, cfg.dcm_r_max],
         "y_band": y_band,
         "n_pairs": int(dcm_stats["n_samples"]),
+        "n_inliers": int(dcm_stats.get("n_inliers", dcm_stats["n_samples"])),
+        "fit_model": dcm_stats.get("fit_model", "pointwise_plateau"),
+        "fit_r2": dcm_stats.get("fit_r2"),
         "KI_ref": float(dcm_stats["KI_ref"]),
         "KI_mean": float(dcm_stats["KI_mean"]),
         "KI_std": float(dcm_stats["KI_std"]),
         "KI_relative_span": relative_span(ki_vals.tolist(), float(dcm_stats["KI_ref"])),
+        "KI_pointwise_median": float(dcm_stats.get("KI_pointwise_median", dcm_stats["KI_ref"])),
+        "KI_pointwise_mean": float(dcm_stats.get("KI_pointwise_mean", dcm_stats["KI_mean"])),
         "samples": dcm_stats["samples"],
         "crack_len": crack_len,
     }
@@ -669,13 +695,17 @@ def plot_J_vs_rout(r_outs, J_vals, best_idx, out_png: Path):
     plt.close()
 
 
-def plot_KI_vs_rout(r_outs, KI_vals, out_png: Path):
+def plot_KI_vs_rout(r_outs, KI_vals, out_png: Path, best_idx: Optional[int] = None):
     plt.figure()
-    plt.plot(r_outs, KI_vals, marker="o")
+    plt.plot(r_outs, KI_vals, marker="o", label=r"$K_I$")
+    if best_idx is not None and 0 <= best_idx < len(r_outs):
+        plt.plot(r_outs[best_idx], KI_vals[best_idx], marker="s", markersize=10, label="selected $K_I$")
+        plt.axhline(float(KI_vals[best_idx]), linestyle="--", alpha=0.7)
     plt.xlabel("r_out (m)")
     plt.ylabel("K_I from J (Pa*sqrt(m))")
     plt.title("K_I vs J-domain outer radius")
     plt.grid(True)
+    plt.legend()
     plt.tight_layout()
     plt.savefig(out_png, dpi=220, bbox_inches="tight")
     plt.close()
@@ -692,6 +722,33 @@ def plot_KII_vs_rout(r_outs, KII_vals, out_png: Path):
     plt.close()
 
 
+def plot_dcm_ki_vs_r(samples: List[Dict[str, Any]], ki_ref: float, out_png: Path):
+    if not samples:
+        return
+    r = np.asarray([float(s["r"]) for s in samples], dtype=float)
+    ki = np.asarray([float(s["KI"]) for s in samples], dtype=float)
+    valid = np.isfinite(r) & np.isfinite(ki) & (r > 0.0)
+    if not np.any(valid):
+        return
+
+    order = np.argsort(r[valid])
+    r_use = r[valid][order]
+    ki_use = ki[valid][order]
+
+    plt.figure()
+    plt.plot(r_use, ki_use, marker="o", label="DCM pointwise $K_I$")
+    plt.axhline(float(ki_ref), linestyle="--", label="DCM fitted $K_I$")
+    plt.xscale("log")
+    plt.xlabel("r behind tip (m)")
+    plt.ylabel("DCM $K_I$ (Pa*sqrt(m))")
+    plt.title("DCM $K_I$ vs radial distance")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(out_png, dpi=220, bbox_inches="tight")
+    plt.close()
+
+
 
 def write_csv(path: Path, r_vals, sigma_yy, vm):
     with open(path, "w", newline="", encoding="utf-8") as f:
@@ -703,15 +760,38 @@ def write_csv(path: Path, r_vals, sigma_yy, vm):
 
 def choose_best_idx(r_outs: List[float], KI_vals: List[float]) -> int:
     """
-    Simple plateau-ish choice:
-    pick the contour with the smallest deviation from the mean of the last half.
+    Plateau-biased selection with an inner-contour preference.
+
+    We score local flatness (slope + local scatter) on a 3-point stencil and
+    intentionally prioritize inner contours because large outer contours are
+    more likely to be contaminated by boundary effects.
     """
     arr = np.asarray(KI_vals, dtype=float)
     n = len(arr)
-    tail = arr[n // 2:]
-    ref = float(np.mean(tail))
-    idx = int(np.argmin(np.abs(arr - ref)))
-    return idx
+    if n <= 2:
+        return int(np.argmax(arr))
+
+    r = np.asarray(r_outs, dtype=float)
+    r_span = float(max(np.max(r) - np.min(r), 1e-30))
+    candidate_stop = max(2, int(np.ceil(0.6 * n)))  # favor first ~60% contours
+
+    best_idx = 1
+    best_score = float("inf")
+    for i in range(1, min(n - 1, candidate_stop)):
+        rr = r[i - 1:i + 2]
+        kk = arr[i - 1:i + 2]
+        A = np.vstack([rr, np.ones_like(rr)]).T
+        slope, _ = np.linalg.lstsq(A, kk, rcond=None)[0]
+        k_med = float(np.median(kk))
+        slope_norm = abs(float(slope)) * r_span / (abs(k_med) + 1e-30)
+        scatter = float(np.std(kk) / (abs(k_med) + 1e-30))
+        inner_bias = float(i / max(n - 1, 1))
+        score = slope_norm + 0.4 * scatter + 0.25 * inner_bias
+        if score < best_score:
+            best_score = score
+            best_idx = i
+
+    return int(best_idx)
 
 
 def relative_span(vals: List[float], ref_val: float) -> float:
@@ -765,12 +845,13 @@ def run_one_validation(
     nu = float(meta.get("nu", cfg.nu))
     plane_stress = bool(meta.get("plane_stress", cfg.plane_stress))
 
-    use_interaction = (
-    cfg.use_interaction_integral_for_stochastic
-    and E_elem is not None
-    and sweep_interaction_rout is not None
-    )
+    use_interaction = cfg.use_interaction_integral_for_stochastic and sweep_interaction_rout is not None
+    if cfg.use_interaction_integral_for_stochastic and sweep_interaction_rout is None:
+        logging.warning(
+            "Interaction integral requested but sweep_interaction_rout is unavailable. Falling back to corrected_J_star."
+        )
 
+    interaction_sign_correction = 1.0
     if use_interaction:
         E_tip = cfg.E_tip_for_aux if cfg.E_tip_for_aux is not None else E_scalar
 
@@ -792,12 +873,16 @@ def run_one_validation(
             crack_end=tip,
             exclude_crack_faces=True,
             crack_face_exclusion=cfg.crack_face_exclusion,
-            modes=("I", "II"),
+            modes=cfg.interaction_modes,
+            use_inhomogeneity_correction=cfg.interaction_use_inhomogeneity_correction,
         )
 
         r_outs = [float(s.r_out) for s in sweep]
-        KI_vals = [float(s.KI) for s in sweep]
-        KII_vals = [float(s.KII) for s in sweep]
+        KI_signed_vals = [float(s.KI) for s in sweep]
+        if cfg.interaction_force_mode_I_positive and float(np.median(KI_signed_vals)) < 0.0:
+            interaction_sign_correction = -1.0
+        KI_vals = [float(interaction_sign_correction * v) for v in KI_signed_vals]
+        KII_vals = [float(interaction_sign_correction * s.KII) for s in sweep]
         J_vals = None
 
     else:
@@ -866,7 +951,7 @@ def run_one_validation(
     if KII_vals is not None:
         plot_KII_vs_rout(r_outs, KII_vals, cfg.run_dir / f"KII_vs_rout{suffix}.png")
 
-    plot_KI_vs_rout(r_outs, KI_vals, cfg.run_dir / f"KI_vs_rout{suffix}.png")
+    plot_KI_vs_rout(r_outs, KI_vals, cfg.run_dir / f"KI_vs_rout{suffix}.png", best_idx=best_idx)
     plot_stress_line(r_vals, sigma_yy, vm, cfg.run_dir / f"sigma_yy_and_vonmises_vs_r{suffix}.png")
     plot_sigma_sqrt_2pir(r_vals, sigma_yy, KI_ref, cfg.run_dir / f"sigma_sqrt_2pir_vs_r{suffix}.png")
 
@@ -892,6 +977,16 @@ def run_one_validation(
     "crack_dir": crack_dir.tolist(),
     "E_mean_scalar_used_in_post": E_scalar,
     "method": "interaction_integral" if use_interaction else "corrected_J_star",
+    "interaction_settings": {
+        "requested": bool(cfg.use_interaction_integral_for_stochastic),
+        "applied": bool(use_interaction),
+        "modes": list(cfg.interaction_modes),
+        "use_inhomogeneity_correction": bool(cfg.interaction_use_inhomogeneity_correction),
+        "force_mode_I_positive": bool(cfg.interaction_force_mode_I_positive),
+        "sign_correction_factor": float(interaction_sign_correction),
+        "E_tip_for_aux": float(E_tip) if use_interaction else (float(cfg.E_tip_for_aux) if cfg.E_tip_for_aux is not None else None),
+        "interaction_impl_available": bool(sweep_interaction_rout is not None),
+    },
     "r_in": cfg.r_in,
     "r_out_list": r_outs,
     "KI_list": KI_vals,
@@ -913,6 +1008,9 @@ def run_one_validation(
     if KII_vals is not None:
         summary["KII_list"] = KII_vals
         summary["KII_ref"] = float(KII_vals[best_idx])
+    if use_interaction:
+        summary["KI_raw_list"] = KI_signed_vals
+        summary["KI_ref_raw"] = float(KI_signed_vals[best_idx])
 
     if cfg.enable_dcm_from_fields:
         dcm_summary = estimate_dcm_from_fields(
@@ -931,6 +1029,11 @@ def run_one_validation(
             ki_dcm = float(dcm_summary["KI_ref"])
             summary["KI_ref_dcm"] = ki_dcm
             summary["KI_ref_dcm_delta_to_J"] = float((ki_dcm - KI_ref) / max(abs(KI_ref), 1e-30))
+            plot_dcm_ki_vs_r(
+                samples=dcm_summary.get("samples", []),
+                ki_ref=ki_dcm,
+                out_png=cfg.run_dir / f"dcm_KI_vs_r{suffix}.png",
+            )
         
     (cfg.run_dir / f"validation_summary{suffix}.json").write_text(
             json.dumps(summary, indent=2), encoding="utf-8"
@@ -1165,8 +1268,25 @@ def main():
         if merged_val_cfg.get("realization_id") is not None:
             cfg.realization_id = int(merged_val_cfg["realization_id"])
         cfg.use_interaction_integral_for_stochastic = _as_bool(
-            merged_val_cfg.get("use_interaction_integral_for_stochastic"),
+            merged_val_cfg.get(
+                "use_interaction_integral_for_stochastic",
+                merged_val_cfg.get("use_interaction_integral"),
+            ),
             cfg.use_interaction_integral_for_stochastic,
+        )
+        if merged_val_cfg.get("E_tip_for_aux") is not None:
+            cfg.E_tip_for_aux = float(merged_val_cfg.get("E_tip_for_aux"))
+        cfg.interaction_modes = _as_interaction_modes(
+            merged_val_cfg.get("interaction_modes"),
+            cfg.interaction_modes,
+        )
+        cfg.interaction_use_inhomogeneity_correction = _as_bool(
+            merged_val_cfg.get("interaction_use_inhomogeneity_correction"),
+            cfg.interaction_use_inhomogeneity_correction,
+        )
+        cfg.interaction_force_mode_I_positive = _as_bool(
+            merged_val_cfg.get("interaction_force_mode_I_positive"),
+            cfg.interaction_force_mode_I_positive,
         )
 
         # Backward compatible aliases for DCM toggles.
@@ -1204,6 +1324,10 @@ def main():
                     "r_out_list": list(cfg.r_out_list),
                     "crack_face_exclusion": cfg.crack_face_exclusion,
                     "use_interaction_integral_for_stochastic": cfg.use_interaction_integral_for_stochastic,
+                    "interaction_modes": list(cfg.interaction_modes),
+                    "interaction_use_inhomogeneity_correction": cfg.interaction_use_inhomogeneity_correction,
+                    "interaction_force_mode_I_positive": cfg.interaction_force_mode_I_positive,
+                    "E_tip_for_aux": cfg.E_tip_for_aux,
                 },
                 "rng": {"seed_derivation_rule": "realization_seed = base_seed + realization_id"},
             },
