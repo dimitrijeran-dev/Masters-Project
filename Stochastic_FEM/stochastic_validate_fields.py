@@ -97,7 +97,7 @@ class ValConfig:
     crack_face_exclusion: float = 5.0e-4
     
     # Interaction Integral
-    use_interaction_integral_for_stochastic: bool = False
+    use_interaction_integral_for_stochastic: bool = True
     E_tip_for_aux: Optional[float] = None
     interaction_modes: Tuple[str, ...] = ("I", "II")
     interaction_use_inhomogeneity_correction: bool = True
@@ -109,7 +109,7 @@ class ValConfig:
     aggregate_summary_name: str = "validation_summary_all_realizations.json"
 
     # Optional DCM post-processing from nodal crack-face displacements
-    enable_dcm_from_fields: bool = True
+    enable_dcm_from_fields: bool = False
     dcm_r_min: float = 2.0e-4
     dcm_r_max: float = 2.0e-3
     dcm_n_bins: int = 48
