@@ -34,6 +34,7 @@ import json
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
+from src.run_manifest import load_run_manifest, write_run_manifest, ensure_summary_manifest_hash
 
 # --- import your J-integral functions ---
 from src.J_Integral import compute_J_domain_q4, sweep_J_rout
@@ -491,6 +492,35 @@ def main():
     cfg.vtu_path = cfg.run_dir / "solution_q4.vtu"
     cfg.npz_path = cfg.run_dir / "fields.npz"
     cfg.export_csv = cfg.run_dir / "validation_line.csv"
+    manifest_path = cfg.run_dir / "run_manifest.json"
+    if manifest_path.exists():
+        manifest = load_run_manifest(cfg.run_dir)
+        manifest_hash = manifest.get("manifest_hash_sha256")
+    else:
+        _, manifest_hash = write_run_manifest(
+            cfg.run_dir,
+            {
+                "workflow": "FEM.validate_fields",
+                "geometry_mesh": {"a": cfg.a, "W": cfg.W, "H": cfg.H},
+                "solver": {
+                    "E": cfg.E,
+                    "nu": cfg.nu,
+                    "plane_stress": cfg.plane_stress,
+                    "sigma_nominal": cfg.sigma_nominal,
+                },
+                "validation": {
+                    "tip": list(cfg.tip),
+                    "crack_dir": list(cfg.crack_dir),
+                    "r_min": cfg.r_min,
+                    "r_max": cfg.r_max,
+                    "n_r": cfg.n_r,
+                    "r_in": cfg.r_in,
+                    "r_out_list": list(cfg.r_out_list),
+                    "crack_face_exclusion": cfg.crack_face_exclusion,
+                },
+                "rng": {"seed_derivation_rule": "deterministic_no_rng"},
+            },
+        )
 
     outdir = cfg.run_dir
     outdir.mkdir(parents=True, exist_ok=True)
@@ -576,7 +606,10 @@ def main():
     "JK_relative_residual": float(JK_resid),
     "Y_est": float(Y),
     }
-    write_summary_json(outdir / "validation_summary.json", summary)
+    write_summary_json(
+        outdir / "validation_summary.json",
+        ensure_summary_manifest_hash(summary, manifest_hash),
+    )
 
     plt.show()
 

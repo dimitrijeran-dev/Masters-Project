@@ -5,6 +5,13 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 from fatigue_lifing_utils import paris_law, integrate_crack_growth
+import json
+from pathlib import Path
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(ROOT))
+from src.run_manifest import load_run_manifest, write_run_manifest
 
 def main():
     parser = argparse.ArgumentParser()
@@ -19,6 +26,26 @@ def main():
         help="Threshold Delta K in MPa*sqrt(m). Example: 3.715"
     )
     args = parser.parse_args()
+    outdir = Path(args.outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+    manifest_path = outdir / "run_manifest.json"
+    if manifest_path.exists():
+        manifest = load_run_manifest(outdir)
+        manifest_hash = manifest.get("manifest_hash_sha256")
+    else:
+        _, manifest_hash = write_run_manifest(
+            outdir,
+            {
+                "workflow": "Lifing.make_dadn_curve",
+                "lifing": {
+                    "delta_k_csv": args.delta_k_csv,
+                    "C": args.C,
+                    "m": args.m,
+                    "delta_k_th": args.delta_k_th,
+                },
+                "rng": {"seed_derivation_rule": "deterministic_no_rng"},
+            },
+        )
 
     df = pd.read_csv(args.delta_k_csv)
     a = df["a"].values
@@ -99,6 +126,17 @@ def main():
     fig.tight_layout()
     fig.savefig(f"{args.outdir}/a_vs_N.png", dpi=300)
     plt.close(fig)
+    (outdir / "dadn_summary.json").write_text(
+        json.dumps(
+            {
+                "n_points": int(len(a)),
+                "delta_k_th": args.delta_k_th,
+                "manifest_hash_sha256": manifest_hash,
+            },
+            indent=2,
+        ),
+        encoding="utf-8",
+    )
 
     print("Generated Paris law plots")
     if args.delta_k_th is not None:
