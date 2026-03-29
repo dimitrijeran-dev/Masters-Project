@@ -34,24 +34,26 @@ from __future__ import annotations
 import csv
 import json
 import logging
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple, List, Dict, Any
-
-from src.configs.run_io import load_runtime_config, update_runtime_config
 
 import matplotlib.pyplot as plt
 import meshio
 import numpy as np
 
-import sys
-
 THIS = Path(__file__).resolve()
 ROOT = THIS.parent
-sys.path.append(str(ROOT))
-sys.path.append(str(ROOT.parent))
+if str(ROOT) not in sys.path:
+    sys.path.append(str(ROOT))
+if str(ROOT.parent) not in sys.path:
+    sys.path.append(str(ROOT.parent))
+if str(ROOT.parent / "src") not in sys.path:
+    sys.path.append(str(ROOT.parent / "src"))
+
+from src.configs.run_io import load_runtime_config, update_runtime_config
 from src.run_manifest import load_run_manifest, write_run_manifest
-sys.path.append(str(ROOT.parent / "src"))
 
 # Prefer the stochastic-capable J-integral if present in the same folder.
 try:
