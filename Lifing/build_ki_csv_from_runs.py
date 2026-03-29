@@ -7,14 +7,29 @@ from pathlib import Path
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--run-dirs", nargs="+", required=True)
-    parser.add_argument("--a-values", nargs="+", type=float, required=False)
+    parser.add_argument("--a-values", nargs="+", type=float, required=True)
     parser.add_argument("--out-csv", required=True)
     args = parser.parse_args()
 
+    if len(args.run_dirs) != len(args.a_values):
+        raise ValueError(
+            "Length mismatch: --run-dirs and --a-values must contain the same "
+            f"number of entries (got {len(args.run_dirs)} run dirs and "
+            f"{len(args.a_values)} a-values)."
+        )
+
+    validation_paths = [Path(run_dir) / "validation_summary.json" for run_dir in args.run_dirs]
+    missing_files = [str(path) for path in validation_paths if not path.is_file()]
+    if missing_files:
+        missing_list = "\n  - ".join(missing_files)
+        raise FileNotFoundError(
+            "Missing required validation summary files:\n"
+            f"  - {missing_list}"
+        )
+
     rows = []
 
-    for run_dir, a in zip(args.run_dirs, args.a_values):
-        path = Path(run_dir) / "validation_summary.json"
+    for path, a in zip(validation_paths, args.a_values):
         with open(path) as f:
             data = json.load(f)
 
