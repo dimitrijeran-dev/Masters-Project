@@ -235,6 +235,91 @@ def estimate_plateau_ki(
     }
 
 
+def select_stable_window(
+    r,
+    ki,
+    r_min: Optional[float] = None,
+    r_max: Optional[float] = None,
+    frac_window: float = 0.35,
+    min_points: int = 8,
+):
+    r_arr = np.asarray(r, dtype=float)
+    k_arr = np.asarray(ki, dtype=float)
+    if r_arr.size != k_arr.size or r_arr.size == 0:
+        raise ValueError("r and ki must have same non-zero length")
+    mask = np.ones_like(r_arr, dtype=bool)
+    if r_min is not None:
+        mask &= r_arr >= float(r_min)
+    if r_max is not None:
+        mask &= r_arr <= float(r_max)
+    rr = r_arr[mask]
+    kk = k_arr[mask]
+    if rr.size < max(min_points, 5):
+        return {"r_min": float(np.min(rr)), "r_max": float(np.max(rr)), "indices": np.where(mask)[0].tolist()}
+    tmp = np.rec.fromarrays([rr, kk], names=["r", "KI"])
+    import pandas as pd
+
+    df = pd.DataFrame({"r": tmp["r"], "KI": tmp["KI"]})
+    wmin, wmax = _auto_r_window_from_K(df, frac_window=frac_window, min_points=min_points)
+    in_win = np.where(mask & (r_arr >= wmin) & (r_arr <= wmax))[0]
+    return {"r_min": float(wmin), "r_max": float(wmax), "indices": in_win.tolist()}
+
+
+def estimate_plateau_ki_windowed(
+    records: Iterable[CrackFaceDisplacement],
+    material: Material,
+    r_min: Optional[float] = None,
+    r_max: Optional[float] = None,
+    frac_window: float = 0.35,
+    min_points: int = 8,
+):
+    recs = list(records)
+    rs = np.asarray([r.r for r in recs], dtype=float)
+    kis = np.asarray([compute_mode_i_sif(r, material).sif for r in recs], dtype=float)
+    w = select_stable_window(rs, kis, r_min=r_min, r_max=r_max, frac_window=frac_window, min_points=min_points)
+    idx = w["indices"]
+    subset = [recs[i] for i in idx]
+    stats = estimate_plateau_ki(subset, material, use_median=True)
+    stats["window"] = w
+    return stats
+
+
+def estimate_plateau_ki_from_fields_npz(
+    fields_npz_path,
+    x_tip,
+    y_tip,
+    material,
+    y_band,
+    x_match_tol,
+    r_min: Optional[float] = None,
+    r_max: Optional[float] = None,
+) -> dict:
+    data = np.load(fields_npz_path)
+    pts = np.asarray(data["pts"], dtype=float)
+    u = np.asarray(data["u"], dtype=float).reshape(-1)
+    df = {
+        "node_id": np.arange(pts.shape[0]),
+        "x": pts[:, 0],
+        "y": pts[:, 1],
+        "uy": u[1::2],
+    }
+    import pandas as pd
+
+    pdf = pd.DataFrame(df)
+    paired = _pair_faces_by_x(pdf, float(x_tip), float(y_tip), float(y_band), float(x_match_tol))
+    if paired.empty:
+        raise ValueError("No crack-face pairs found from fields data.")
+    paired["r"] = float(x_tip) - paired["x"].astype(float)
+    paired = paired[paired["r"] > 0].sort_values("r")
+    records = [
+        CrackFaceDisplacement(r=float(row["r"]), uy_upper=float(row["uy_upper"]), uy_lower=float(row["uy_lower"]))
+        for _, row in paired.iterrows()
+    ]
+    out = estimate_plateau_ki_windowed(records, material, r_min=r_min, r_max=r_max)
+    out["pairs_count"] = int(len(paired))
+    return out
+
+
 def _format_result(result: ModeIResult) -> str:
     unit = "MPa*sqrt(m)"
     sif_mpa = result.sif / 1e6
