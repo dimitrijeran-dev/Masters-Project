@@ -135,6 +135,20 @@ def setup_logging():
     logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 
+def _as_bool(value: Any, default: bool) -> bool:
+    if value is None:
+        return default
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        v = value.strip().lower()
+        if v in {"1", "true", "yes", "y", "on"}:
+            return True
+        if v in {"0", "false", "no", "n", "off"}:
+            return False
+    return bool(value)
+
+
 def crack_tip_xy(meta: dict) -> np.ndarray:
     return np.asarray(meta["tip"], dtype=float).reshape(2)
 
@@ -1136,6 +1150,36 @@ def main():
         cfg.E = float(mat_cfg.get("E", mat_cfg.get("E_mean", cfg.E)))
         cfg.nu = float(mat_cfg.get("nu", cfg.nu))
         cfg.plane_stress = bool(mat_cfg.get("plane_stress", cfg.plane_stress))
+    val_cfg = runtime_cfg.get("validation", {})
+    stage_val_cfg = runtime_cfg.get("stages", {}).get("validation", {})
+    merged_val_cfg = {
+        **(val_cfg if isinstance(val_cfg, dict) else {}),
+        **(stage_val_cfg if isinstance(stage_val_cfg, dict) else {}),
+    }
+    if merged_val_cfg:
+        cfg.run_all_realizations = _as_bool(
+            merged_val_cfg.get("run_all_realizations"),
+            cfg.run_all_realizations,
+        )
+        cfg.realization_glob = str(merged_val_cfg.get("realization_glob", cfg.realization_glob))
+        if merged_val_cfg.get("realization_id") is not None:
+            cfg.realization_id = int(merged_val_cfg["realization_id"])
+        cfg.use_interaction_integral_for_stochastic = _as_bool(
+            merged_val_cfg.get("use_interaction_integral_for_stochastic"),
+            cfg.use_interaction_integral_for_stochastic,
+        )
+
+        # Backward compatible aliases for DCM toggles.
+        dcm_enabled_raw = merged_val_cfg.get(
+            "enable_dcm_from_fields",
+            merged_val_cfg.get("enable_dcm", merged_val_cfg.get("dcm")),
+        )
+        cfg.enable_dcm_from_fields = _as_bool(dcm_enabled_raw, cfg.enable_dcm_from_fields)
+        cfg.dcm_r_min = float(merged_val_cfg.get("dcm_r_min", cfg.dcm_r_min))
+        cfg.dcm_r_max = float(merged_val_cfg.get("dcm_r_max", cfg.dcm_r_max))
+        cfg.dcm_n_bins = int(merged_val_cfg.get("dcm_n_bins", cfg.dcm_n_bins))
+        cfg.dcm_y_band_scale = float(merged_val_cfg.get("dcm_y_band_scale", cfg.dcm_y_band_scale))
+        cfg.dcm_use_median = _as_bool(merged_val_cfg.get("dcm_use_median"), cfg.dcm_use_median)
     manifest_path = cfg.run_dir / "run_manifest.json"
     if manifest_path.exists():
         manifest = load_run_manifest(cfg.run_dir)
