@@ -184,6 +184,11 @@ def estimate_plateau_ki(
     x = np.sqrt(r_arr)
     y = cod_arr
     c_ki = (2.0 * material.shear_modulus() / (material.kappa() + 1.0)) * math.sqrt(2.0 * math.pi)
+    # cod(r) = m * sqrt(r), and KI = (E'/8) * m * sqrt(2*pi)
+    x = np.sqrt(r_arr)
+    y = cod_arr
+    eprime = material.effective_modulus()
+    c_ki = (eprime / 8.0) * math.sqrt(2.0 * math.pi)
 
     # Inlier filtering based on pointwise KI residuals (median/MAD), then
     # through-origin least-squares fit on cod-vs-sqrt(r).
