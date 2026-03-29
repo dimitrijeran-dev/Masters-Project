@@ -26,6 +26,11 @@ import meshio
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(ROOT))
+from src.run_manifest import load_run_manifest, write_run_manifest
 
 
 @dataclass
@@ -537,7 +542,7 @@ def write_vtk(out_path: Path, pts: np.ndarray, quad: np.ndarray, u: np.ndarray, 
     mesh.write(str(out_path))
 
 
-def solve_one(cfg: SolverConfig, realization_id: int = 0, kl_data: Optional[dict] = None):
+def solve_one(cfg: SolverConfig, realization_id: int = 0, kl_data: Optional[dict] = None, manifest_hash: Optional[str] = None):
     pts, quad, lines, line_phys, phys_map = read_gmsh_quad_mesh(cfg.run_dir / cfg.msh_name)
     top_edges = boundary_edges_by_name(pts, quad, lines, line_phys, phys_map, "TOP", cfg.W, cfg.H)
     bottom_edges = boundary_edges_by_name(pts, quad, lines, line_phys, phys_map, "BOTTOM", cfg.W, cfg.H)
@@ -585,6 +590,9 @@ def solve_one(cfg: SolverConfig, realization_id: int = 0, kl_data: Optional[dict
     meta["crack_start"] = list(crack_start_xy(cfg))
     meta["crack_dir"] = [1.0, 0.0]
     meta["realization_id"] = int(realization_id)
+    meta["realization_seed"] = int(cfg.random_seed + realization_id)
+    meta["seed_derivation_rule"] = "realization_seed = random_seed + realization_id"
+    meta["manifest_hash_sha256"] = manifest_hash
     meta["E_elem_mean"] = float(np.mean(E_elem))
     meta["E_elem_std"] = float(np.std(E_elem))
     if kl_data is not None:
@@ -614,6 +622,53 @@ def main():
         cfg.run_name = f"Deterministic_config_{cfg.geometry_type}"
     cfg.run_dir = cfg.base_out_dir / cfg.run_name
     cfg.run_dir.mkdir(parents=True, exist_ok=True)
+    manifest_path = cfg.run_dir / "run_manifest.json"
+    if manifest_path.exists():
+        manifest = load_run_manifest(cfg.run_dir)
+        manifest_hash = manifest.get("manifest_hash_sha256")
+    else:
+        _, manifest_hash = write_run_manifest(
+            cfg.run_dir,
+            {
+                "workflow": "Stochastic_FEM.stochastic_fem_solver",
+                "geometry_mesh": {
+                    "geometry_type": cfg.geometry_type,
+                    "W": cfg.W,
+                    "H": cfg.H,
+                    "a": cfg.a,
+                    "crack_gap": cfg.crack_gap,
+                    "hole_radius": cfg.hole_radius,
+                    "hole_center": list(cfg.hole_center) if cfg.hole_center is not None else None,
+                    "mesh_file": cfg.msh_name,
+                },
+                "solver": {
+                    "E_mean": cfg.E_mean,
+                    "nu": cfg.nu,
+                    "plane_stress": cfg.plane_stress,
+                    "thickness": cfg.thickness,
+                    "stochastic_E": cfg.stochastic_E,
+                    "E_mode": cfg.E_mode,
+                    "E_rel_std": cfg.E_rel_std,
+                    "E_rel_clip": cfg.E_rel_clip,
+                    "n_realizations": cfg.n_realizations,
+                    "kl_n_terms": cfg.kl_n_terms,
+                    "kl_landmarks": cfg.kl_landmarks,
+                    "kl_corr_len_x": cfg.kl_corr_len_x,
+                    "kl_corr_len_y": cfg.kl_corr_len_y,
+                    "kl_kernel": cfg.kl_kernel,
+                },
+                "validation": {},
+                "lifing": {},
+                "rng": {
+                    "base_seed": cfg.random_seed,
+                    "seed_derivation_rule": "realization_seed = base_seed + realization_id",
+                    "per_realization": [
+                        {"realization_id": i, "seed": cfg.random_seed + i}
+                        for i in range(cfg.n_realizations)
+                    ],
+                },
+            },
+        )
 
     msh_path = cfg.run_dir / cfg.msh_name
     if not msh_path.exists():
@@ -628,7 +683,7 @@ def main():
         kl_data = build_kl_basis(cfg, centroids, basis_rng)
 
     for i in range(cfg.n_realizations):
-        solve_one(cfg, i, kl_data=kl_data)
+        solve_one(cfg, i, kl_data=kl_data, manifest_hash=manifest_hash)
 
 
 if __name__ == "__main__":

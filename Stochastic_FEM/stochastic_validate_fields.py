@@ -47,6 +47,8 @@ import sys
 THIS = Path(__file__).resolve()
 ROOT = THIS.parent
 sys.path.append(str(ROOT))
+sys.path.append(str(ROOT.parent))
+from src.run_manifest import load_run_manifest, write_run_manifest
 
 # Prefer the stochastic-capable J-integral if present in the same folder.
 try:
@@ -561,7 +563,7 @@ def relative_span(vals: List[float], ref_val: float) -> float:
         return float("nan")
     return float((np.max(arr) - np.min(arr)) / abs(ref_val))
 
-def run_one_validation(cfg: ValConfig, realization_id: Optional[int]) -> None:
+def run_one_validation(cfg: ValConfig, realization_id: Optional[int], manifest_hash: Optional[str] = None) -> None:
     suffix = f"_mc{realization_id:04d}" if realization_id is not None else ""
     npz_path = cfg.run_dir / f"fields{suffix}.npz"
     meta_path = cfg.run_dir / f"metadata{suffix}.json"
@@ -709,6 +711,7 @@ def run_one_validation(cfg: ValConfig, realization_id: Optional[int]) -> None:
     "KI_relative_span": KI_relative_span,
     "E_elem_mean": float(np.mean(E_elem)) if E_elem is not None else E_scalar,
     "E_elem_std": float(np.std(E_elem)) if E_elem is not None else 0.0,
+    "manifest_hash_sha256": manifest_hash,
     }
 
     if J_vals is not None:
@@ -730,6 +733,34 @@ def run_one_validation(cfg: ValConfig, realization_id: Optional[int]) -> None:
 def main():
     setup_logging()
     cfg = ValConfig()
+    manifest_path = cfg.run_dir / "run_manifest.json"
+    if manifest_path.exists():
+        manifest = load_run_manifest(cfg.run_dir)
+        manifest_hash = manifest.get("manifest_hash_sha256")
+    else:
+        _, manifest_hash = write_run_manifest(
+            cfg.run_dir,
+            {
+                "workflow": "Stochastic_FEM.stochastic_validate_fields",
+                "geometry_mesh": {},
+                "solver": {
+                    "E": cfg.E,
+                    "nu": cfg.nu,
+                    "plane_stress": cfg.plane_stress,
+                    "sigma_nominal": cfg.sigma_nominal,
+                },
+                "validation": {
+                    "r_min": cfg.r_min,
+                    "r_max": cfg.r_max,
+                    "n_r": cfg.n_r,
+                    "r_in": cfg.r_in,
+                    "r_out_list": list(cfg.r_out_list),
+                    "crack_face_exclusion": cfg.crack_face_exclusion,
+                    "use_interaction_integral_for_stochastic": cfg.use_interaction_integral_for_stochastic,
+                },
+                "rng": {"seed_derivation_rule": "realization_seed = base_seed + realization_id"},
+            },
+        )
 
     if cfg.run_all_realizations:
         ids = discover_realization_ids(cfg.run_dir, cfg.realization_glob)
@@ -740,11 +771,10 @@ def main():
 
         logging.info(f"Found realization IDs: {ids}")
         for rid in ids:
-            run_one_validation(cfg, rid)
+            run_one_validation(cfg, rid, manifest_hash=manifest_hash)
     else:
-        run_one_validation(cfg, cfg.realization_id)
+        run_one_validation(cfg, cfg.realization_id, manifest_hash=manifest_hash)
 
 
 if __name__ == "__main__":
     main()
-
