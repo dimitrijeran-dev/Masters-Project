@@ -724,9 +724,11 @@ def _metric_stats(values: List[float]) -> dict:
     }
 
 
-def run_one_validation(cfg: ValConfig, realization_id: Optional[int]) -> dict:
-def run_one_validation(cfg: ValConfig, realization_id: Optional[int], manifest_hash: Optional[str] = None) -> None:
-def run_one_validation(cfg: ValConfig, realization_id: Optional[int]) -> Dict[str, Any]:
+def run_one_validation(
+    cfg: ValConfig,
+    realization_id: Optional[int],
+    manifest_hash: Optional[str] = None,
+) -> Dict[str, Any]:
     suffix = f"_mc{realization_id:04d}" if realization_id is not None else ""
     npz_path = cfg.run_dir / f"fields{suffix}.npz"
     meta_path = cfg.run_dir / f"metadata{suffix}.json"
@@ -1169,30 +1171,23 @@ def main():
             )
 
         logging.info(f"Found realization IDs: {ids}")
-        summaries = []
-        for rid in ids:
-            summaries.append(run_one_validation(cfg, rid))
-        write_all_realization_summaries(cfg.run_dir, summaries)
         summaries: List[Dict[str, Any]] = []
         for rid in ids:
-            run_one_validation(cfg, rid)
+            summaries.append(run_one_validation(cfg, rid, manifest_hash=manifest_hash))
+        write_all_realization_summaries(cfg.run_dir, summaries)
+        write_aggregate_summary(cfg, summaries)
         update_runtime_config(
             runtime_cfg_path,
             stage="validation",
             updates={"stage": {"validated_realization_ids": ids, "summary_pattern": "validation_summary_mc*.json"}},
         )
     else:
-        run_one_validation(cfg, cfg.realization_id)
+        run_one_validation(cfg, cfg.realization_id, manifest_hash=manifest_hash)
         update_runtime_config(
             runtime_cfg_path,
             stage="validation",
             updates={"stage": {"validated_realization_ids": [cfg.realization_id], "summary_pattern": "validation_summary*.json"}},
         )
-            run_one_validation(cfg, rid, manifest_hash=manifest_hash)
-            summaries.append(run_one_validation(cfg, rid))
-        write_aggregate_summary(cfg, summaries)
-    else:
-        run_one_validation(cfg, cfg.realization_id, manifest_hash=manifest_hash)
 
     if cfg.run_crack_length_sweep:
         run_crack_length_lifing_comparison(cfg)
