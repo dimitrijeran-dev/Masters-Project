@@ -111,7 +111,7 @@ class ValConfig:
     aggregate_summary_name: str = "validation_summary_all_realizations.json"
 
     # Optional DCM post-processing from nodal crack-face displacements
-    enable_dcm_from_fields: bool = False
+    enable_dcm_from_fields: bool = True
     dcm_r_min: float = 2.0e-4
     dcm_r_max: float = 2.0e-3
     dcm_n_bins: int = 48
@@ -739,7 +739,7 @@ def plot_dcm_ki_vs_r(samples: List[Dict[str, Any]], ki_ref: float, out_png: Path
     plt.figure()
     plt.plot(r_use, ki_use, marker="o", label="DCM pointwise $K_I$")
     plt.axhline(float(ki_ref), linestyle="--", label="DCM fitted $K_I$")
-    plt.xscale("log")
+    # plt.xscale("log")
     plt.xlabel("r behind tip (m)")
     plt.ylabel("DCM $K_I$ (Pa*sqrt(m))")
     plt.title("DCM $K_I$ vs radial distance")
@@ -1293,6 +1293,7 @@ def main():
         cfg.interaction_force_mode_I_positive = _as_bool(
             merged_val_cfg.get("interaction_force_mode_I_positive"),
             cfg.interaction_force_mode_I_positive,
+        )
         cfg.interaction_take_abs_KI = _as_bool(
             merged_val_cfg.get("interaction_take_abs_KI"),
             cfg.interaction_take_abs_KI,
