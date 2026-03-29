@@ -99,6 +99,8 @@ class ValConfig:
     # Interaction Integral
     use_interaction_integral_for_stochastic: bool = False
     E_tip_for_aux: Optional[float] = None
+    interaction_modes: Tuple[str, ...] = ("I", "II")
+    interaction_use_inhomogeneity_correction: bool = True
 
     # Output control
     export_csv: bool = True
@@ -147,6 +149,24 @@ def _as_bool(value: Any, default: bool) -> bool:
         if v in {"0", "false", "no", "n", "off"}:
             return False
     return bool(value)
+
+
+def _as_interaction_modes(value: Any, default: Tuple[str, ...]) -> Tuple[str, ...]:
+    if value is None:
+        return default
+    if isinstance(value, str):
+        raw = [value]
+    else:
+        try:
+            raw = list(value)
+        except TypeError:
+            return default
+    out: List[str] = []
+    for item in raw:
+        token = str(item).strip().upper()
+        if token in {"I", "II"} and token not in out:
+            out.append(token)
+    return tuple(out) if out else default
 
 
 def crack_tip_xy(meta: dict) -> np.ndarray:
@@ -293,10 +313,15 @@ def estimate_dcm_from_fields(
         "window": [cfg.dcm_r_min, cfg.dcm_r_max],
         "y_band": y_band,
         "n_pairs": int(dcm_stats["n_samples"]),
+        "n_inliers": int(dcm_stats.get("n_inliers", dcm_stats["n_samples"])),
+        "fit_model": dcm_stats.get("fit_model", "pointwise_plateau"),
+        "fit_r2": dcm_stats.get("fit_r2"),
         "KI_ref": float(dcm_stats["KI_ref"]),
         "KI_mean": float(dcm_stats["KI_mean"]),
         "KI_std": float(dcm_stats["KI_std"]),
         "KI_relative_span": relative_span(ki_vals.tolist(), float(dcm_stats["KI_ref"])),
+        "KI_pointwise_median": float(dcm_stats.get("KI_pointwise_median", dcm_stats["KI_ref"])),
+        "KI_pointwise_mean": float(dcm_stats.get("KI_pointwise_mean", dcm_stats["KI_mean"])),
         "samples": dcm_stats["samples"],
         "crack_len": crack_len,
     }
@@ -765,11 +790,11 @@ def run_one_validation(
     nu = float(meta.get("nu", cfg.nu))
     plane_stress = bool(meta.get("plane_stress", cfg.plane_stress))
 
-    use_interaction = (
-    cfg.use_interaction_integral_for_stochastic
-    and E_elem is not None
-    and sweep_interaction_rout is not None
-    )
+    use_interaction = cfg.use_interaction_integral_for_stochastic and sweep_interaction_rout is not None
+    if cfg.use_interaction_integral_for_stochastic and sweep_interaction_rout is None:
+        logging.warning(
+            "Interaction integral requested but sweep_interaction_rout is unavailable. Falling back to corrected_J_star."
+        )
 
     if use_interaction:
         E_tip = cfg.E_tip_for_aux if cfg.E_tip_for_aux is not None else E_scalar
@@ -792,7 +817,8 @@ def run_one_validation(
             crack_end=tip,
             exclude_crack_faces=True,
             crack_face_exclusion=cfg.crack_face_exclusion,
-            modes=("I", "II"),
+            modes=cfg.interaction_modes,
+            use_inhomogeneity_correction=cfg.interaction_use_inhomogeneity_correction,
         )
 
         r_outs = [float(s.r_out) for s in sweep]
@@ -892,6 +918,14 @@ def run_one_validation(
     "crack_dir": crack_dir.tolist(),
     "E_mean_scalar_used_in_post": E_scalar,
     "method": "interaction_integral" if use_interaction else "corrected_J_star",
+    "interaction_settings": {
+        "requested": bool(cfg.use_interaction_integral_for_stochastic),
+        "applied": bool(use_interaction),
+        "modes": list(cfg.interaction_modes),
+        "use_inhomogeneity_correction": bool(cfg.interaction_use_inhomogeneity_correction),
+        "E_tip_for_aux": float(E_tip) if use_interaction else (float(cfg.E_tip_for_aux) if cfg.E_tip_for_aux is not None else None),
+        "interaction_impl_available": bool(sweep_interaction_rout is not None),
+    },
     "r_in": cfg.r_in,
     "r_out_list": r_outs,
     "KI_list": KI_vals,
@@ -1165,8 +1199,21 @@ def main():
         if merged_val_cfg.get("realization_id") is not None:
             cfg.realization_id = int(merged_val_cfg["realization_id"])
         cfg.use_interaction_integral_for_stochastic = _as_bool(
-            merged_val_cfg.get("use_interaction_integral_for_stochastic"),
+            merged_val_cfg.get(
+                "use_interaction_integral_for_stochastic",
+                merged_val_cfg.get("use_interaction_integral"),
+            ),
             cfg.use_interaction_integral_for_stochastic,
+        )
+        if merged_val_cfg.get("E_tip_for_aux") is not None:
+            cfg.E_tip_for_aux = float(merged_val_cfg.get("E_tip_for_aux"))
+        cfg.interaction_modes = _as_interaction_modes(
+            merged_val_cfg.get("interaction_modes"),
+            cfg.interaction_modes,
+        )
+        cfg.interaction_use_inhomogeneity_correction = _as_bool(
+            merged_val_cfg.get("interaction_use_inhomogeneity_correction"),
+            cfg.interaction_use_inhomogeneity_correction,
         )
 
         # Backward compatible aliases for DCM toggles.
@@ -1204,6 +1251,9 @@ def main():
                     "r_out_list": list(cfg.r_out_list),
                     "crack_face_exclusion": cfg.crack_face_exclusion,
                     "use_interaction_integral_for_stochastic": cfg.use_interaction_integral_for_stochastic,
+                    "interaction_modes": list(cfg.interaction_modes),
+                    "interaction_use_inhomogeneity_correction": cfg.interaction_use_inhomogeneity_correction,
+                    "E_tip_for_aux": cfg.E_tip_for_aux,
                 },
                 "rng": {"seed_derivation_rule": "realization_seed = base_seed + realization_id"},
             },
