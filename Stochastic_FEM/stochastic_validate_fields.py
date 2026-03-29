@@ -34,9 +34,9 @@ from __future__ import annotations
 import csv
 import json
 import logging
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Dict, Any
 
 import matplotlib.pyplot as plt
 import meshio
@@ -47,6 +47,7 @@ import sys
 THIS = Path(__file__).resolve()
 ROOT = THIS.parent
 sys.path.append(str(ROOT))
+sys.path.append(str(ROOT.parent / "src"))
 
 # Prefer the stochastic-capable J-integral if present in the same folder.
 try:
@@ -57,6 +58,13 @@ try:
 except Exception:
     from J_Integral import sweep_J_rout  # type: ignore
     sweep_interaction_rout = None
+
+try:
+    from dcm import CrackFaceDisplacement, Material, estimate_plateau_ki  # type: ignore
+except Exception:
+    CrackFaceDisplacement = None  # type: ignore
+    Material = None  # type: ignore
+    estimate_plateau_ki = None  # type: ignore
 
 
 @dataclass
@@ -90,6 +98,31 @@ class ValConfig:
     export_csv: bool = True
     csv_name: str = "validation_line.csv"
     summary_name: str = "validation_summary.json"
+    aggregate_summary_name: str = "validation_summary_all_realizations.json"
+
+    # Optional DCM post-processing from nodal crack-face displacements
+    enable_dcm_from_fields: bool = True
+    dcm_r_min: float = 2.0e-4
+    dcm_r_max: float = 2.0e-3
+    dcm_n_bins: int = 48
+    dcm_y_band_scale: float = 1.5
+    dcm_use_median: bool = True
+
+    # Optional crack-length sweep + lifing comparison
+    run_crack_length_sweep: bool = False
+    sweep_root: Path = Path("Data/New Data")
+    sweep_glob: str = "meshrun_*mm"
+    deterministic_glob: str = "meshrun_*mm"
+    stochastic_glob: str = "stochastic_*mm"
+    lifing_out_dir: Path = Path("Data/Fatigue Outputs/stochastic_lifing")
+    life_R: float = 0.1
+    paris_C: float = 1.0e-10
+    paris_m: float = 3.0
+    life_nsamples: int = 2000
+    life_C_cov: float = 0.10
+    life_m_std: float = 0.10
+    life_sigma_scale_mean: float = 1.0
+    life_sigma_scale_cov: float = 0.05
 
 
 def setup_logging():
@@ -141,6 +174,112 @@ def load_solution(npz_path: Path):
     u = np.asarray(data["u"], float).reshape(-1)
     E_elem = np.asarray(data["E_elem"], float) if "E_elem" in data else None
     return pts, conn, u, E_elem
+
+
+def nodal_characteristic_size(pts: np.ndarray, conn: np.ndarray) -> float:
+    edge_lengths = []
+    for nodes in conn:
+        p = pts[nodes, :]
+        edges = [(0, 1), (1, 2), (2, 3), (3, 0)]
+        for i, j in edges:
+            edge_lengths.append(np.linalg.norm(p[j] - p[i]))
+    if not edge_lengths:
+        return 1e-6
+    return float(np.median(np.asarray(edge_lengths, dtype=float)))
+
+
+def estimate_dcm_from_fields(
+    pts: np.ndarray,
+    conn: np.ndarray,
+    u: np.ndarray,
+    tip: np.ndarray,
+    crack_start: np.ndarray,
+    cfg: ValConfig,
+    E_scalar: float,
+    nu: float,
+    plane_stress: bool,
+) -> Dict[str, Any]:
+    if estimate_plateau_ki is None or Material is None or CrackFaceDisplacement is None:
+        return {"available": False, "reason": "dcm_import_failed"}
+
+    y_tip = float(tip[1])
+    x_tip = float(tip[0])
+    crack_len = max(float(np.linalg.norm(tip - crack_start)), 1e-12)
+    h_char = nodal_characteristic_size(pts, conn)
+    y_band = max(cfg.dcm_y_band_scale * h_char, 5e-6)
+
+    x = pts[:, 0]
+    y = pts[:, 1]
+    uy = u[1::2]
+
+    upper_mask = (
+        (np.abs(y - y_tip) <= y_band)
+        & (y >= y_tip)
+        & (x <= x_tip - cfg.dcm_r_min)
+        & (x >= x_tip - cfg.dcm_r_max)
+    )
+    lower_mask = (
+        (np.abs(y - y_tip) <= y_band)
+        & (y <= y_tip)
+        & (x <= x_tip - cfg.dcm_r_min)
+        & (x >= x_tip - cfg.dcm_r_max)
+    )
+    upper_idx = np.flatnonzero(upper_mask)
+    lower_idx = np.flatnonzero(lower_mask)
+    if upper_idx.size == 0 or lower_idx.size == 0:
+        return {
+            "available": False,
+            "reason": "no_crack_face_nodes_in_window",
+            "window": [cfg.dcm_r_min, cfg.dcm_r_max],
+            "y_band": y_band,
+            "crack_len": crack_len,
+        }
+
+    upper = np.column_stack([x[upper_idx], uy[upper_idx]])
+    lower = np.column_stack([x[lower_idx], uy[lower_idx]])
+
+    bin_edges = np.linspace(x_tip - cfg.dcm_r_max, x_tip - cfg.dcm_r_min, cfg.dcm_n_bins + 1)
+    records = []
+    material = Material(elastic_modulus=E_scalar, poisson_ratio=nu, plane_strain=not plane_stress)
+
+    for i in range(cfg.dcm_n_bins):
+        x0, x1 = float(bin_edges[i]), float(bin_edges[i + 1])
+        u_sel = upper[(upper[:, 0] >= x0) & (upper[:, 0] < x1), 1]
+        l_sel = lower[(lower[:, 0] >= x0) & (lower[:, 0] < x1), 1]
+        if u_sel.size == 0 or l_sel.size == 0:
+            continue
+
+        uy_upper = float(np.median(u_sel) if cfg.dcm_use_median else np.mean(u_sel))
+        uy_lower = float(np.median(l_sel) if cfg.dcm_use_median else np.mean(l_sel))
+        x_mid = 0.5 * (x0 + x1)
+        r = float(x_tip - x_mid)
+        if r <= 0:
+            continue
+        records.append(CrackFaceDisplacement(r=r, uy_upper=uy_upper, uy_lower=uy_lower))
+
+    if not records:
+        return {
+            "available": False,
+            "reason": "no_valid_dcm_pairs",
+            "window": [cfg.dcm_r_min, cfg.dcm_r_max],
+            "y_band": y_band,
+            "crack_len": crack_len,
+        }
+
+    dcm_stats = estimate_plateau_ki(records, material, use_median=cfg.dcm_use_median)
+    ki_vals = np.asarray([r["KI"] for r in dcm_stats.get("samples", [])], dtype=float)
+    return {
+        "available": True,
+        "window": [cfg.dcm_r_min, cfg.dcm_r_max],
+        "y_band": y_band,
+        "n_pairs": int(dcm_stats["n_samples"]),
+        "KI_ref": float(dcm_stats["KI_ref"]),
+        "KI_mean": float(dcm_stats["KI_mean"]),
+        "KI_std": float(dcm_stats["KI_std"]),
+        "KI_relative_span": relative_span(ki_vals.tolist(), float(dcm_stats["KI_ref"])),
+        "samples": dcm_stats["samples"],
+        "crack_len": crack_len,
+    }
 
 
 def q4_shape(xi: float, eta: float):
@@ -561,7 +700,7 @@ def relative_span(vals: List[float], ref_val: float) -> float:
         return float("nan")
     return float((np.max(arr) - np.min(arr)) / abs(ref_val))
 
-def run_one_validation(cfg: ValConfig, realization_id: Optional[int]) -> None:
+def run_one_validation(cfg: ValConfig, realization_id: Optional[int]) -> Dict[str, Any]:
     suffix = f"_mc{realization_id:04d}" if realization_id is not None else ""
     npz_path = cfg.run_dir / f"fields{suffix}.npz"
     meta_path = cfg.run_dir / f"metadata{suffix}.json"
@@ -720,12 +859,183 @@ def run_one_validation(cfg: ValConfig, realization_id: Optional[int]) -> None:
     if KII_vals is not None:
         summary["KII_list"] = KII_vals
         summary["KII_ref"] = float(KII_vals[best_idx])
+
+    if cfg.enable_dcm_from_fields:
+        dcm_summary = estimate_dcm_from_fields(
+            pts=pts,
+            conn=conn,
+            u=u,
+            tip=tip,
+            crack_start=crack_start,
+            cfg=cfg,
+            E_scalar=E_scalar,
+            nu=nu,
+            plane_stress=plane_stress,
+        )
+        summary["dcm"] = dcm_summary
+        if dcm_summary.get("available"):
+            ki_dcm = float(dcm_summary["KI_ref"])
+            summary["KI_ref_dcm"] = ki_dcm
+            summary["KI_ref_dcm_delta_to_J"] = float((ki_dcm - KI_ref) / max(abs(KI_ref), 1e-30))
         
     (cfg.run_dir / f"validation_summary{suffix}.json").write_text(
             json.dumps(summary, indent=2), encoding="utf-8"
         )
 
     logging.info(f"Finished validation for realization {realization_id}.")
+    return summary
+
+
+def write_aggregate_summary(cfg: ValConfig, summaries: List[Dict[str, Any]]) -> None:
+    if not summaries:
+        return
+    ki = np.asarray([float(s["KI_ref"]) for s in summaries], dtype=float)
+    rec: Dict[str, Any] = {
+        "run_name": cfg.run_dir.name,
+        "n_realizations": int(len(summaries)),
+        "realization_ids": [s.get("realization_id") for s in summaries],
+        "KI_ref_mean": float(np.mean(ki)),
+        "KI_ref_std": float(np.std(ki)),
+        "KI_ref_cov": float(np.std(ki) / max(abs(np.mean(ki)), 1e-30)),
+        "KI_ref_min": float(np.min(ki)),
+        "KI_ref_max": float(np.max(ki)),
+        "summaries": summaries,
+    }
+
+    dcm_vals = [s.get("KI_ref_dcm") for s in summaries if s.get("KI_ref_dcm") is not None]
+    if dcm_vals:
+        d = np.asarray(dcm_vals, dtype=float)
+        rec["KI_ref_dcm_mean"] = float(np.mean(d))
+        rec["KI_ref_dcm_std"] = float(np.std(d))
+        rec["KI_ref_dcm_cov"] = float(np.std(d) / max(abs(np.mean(d)), 1e-30))
+
+    (cfg.run_dir / cfg.aggregate_summary_name).write_text(json.dumps(rec, indent=2), encoding="utf-8")
+
+
+def _parse_crack_mm(name: str) -> Optional[float]:
+    import re
+    m = re.search(r"(\d+(?:\.\d+)?)mm", name)
+    return float(m.group(1)) if m else None
+
+
+def _collect_ki_vs_a_from_summaries(root: Path, glob_pat: str, stochastic: bool) -> List[Dict[str, float]]:
+    rows = []
+    for run_dir in sorted(root.glob(glob_pat)):
+        a_mm = _parse_crack_mm(run_dir.name)
+        if a_mm is None:
+            continue
+        if stochastic:
+            p = run_dir / "validation_summary_all_realizations.json"
+            if not p.exists():
+                continue
+            data = json.loads(p.read_text(encoding="utf-8"))
+            ki = float(data["KI_ref_mean"])
+        else:
+            p = run_dir / "validation_summary.json"
+            if not p.exists():
+                continue
+            data = json.loads(p.read_text(encoding="utf-8"))
+            ki = float(data["KI_ref"])
+        rows.append({"a": a_mm * 1e-3, "KI": ki, "run_dir": str(run_dir)})
+    rows.sort(key=lambda r: r["a"])
+    return rows
+
+
+def _write_ki_csv(path: Path, rows: List[Dict[str, float]]) -> None:
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        w = csv.DictWriter(f, fieldnames=["a", "KI", "run_dir"])
+        w.writeheader()
+        w.writerows(rows)
+
+
+def _run_lifing_chain(cfg: ValConfig, ki_csv: Path, out_dir: Path, tag: str) -> None:
+    from Lifing.fatigue_lifing_utils import compute_delta_k_from_R, integrate_crack_growth
+    out_dir.mkdir(parents=True, exist_ok=True)
+    arr = np.genfromtxt(ki_csv, delimiter=",", names=True, dtype=None, encoding="utf-8")
+    a = np.asarray(arr["a"], dtype=float)
+    ki = np.asarray(arr["KI"], dtype=float)
+    dk = compute_delta_k_from_R(ki, cfg.life_R)
+    delta_csv = out_dir / f"delta_k_curve_{tag}.csv"
+    with open(delta_csv, "w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["a", "DeltaK"])
+        for ai, dki in zip(a, dk):
+            w.writerow([float(ai), float(dki)])
+
+    N, dadn = integrate_crack_growth(a, dk / 1e6, cfg.paris_C, cfg.paris_m)
+    life_det = float(N[-1]) if len(N) else float("nan")
+
+    rng = np.random.default_rng(42)
+    C_samples = rng.normal(cfg.paris_C, cfg.paris_C * cfg.life_C_cov, cfg.life_nsamples)
+    m_samples = rng.normal(cfg.paris_m, cfg.life_m_std, cfg.life_nsamples)
+    sigma_scales = rng.normal(cfg.life_sigma_scale_mean, cfg.life_sigma_scale_mean * cfg.life_sigma_scale_cov, cfg.life_nsamples)
+    life_samples = []
+    for C, m, s in zip(C_samples, m_samples, sigma_scales):
+        N_i, _ = integrate_crack_growth(a, (dk * s) / 1e6, float(C), float(m))
+        life_samples.append(float(N_i[-1]))
+    life_samples = np.asarray(life_samples, dtype=float)
+
+    plt.figure()
+    plt.plot(a, dk)
+    plt.xlabel("a (m)")
+    plt.ylabel("DeltaK (Pa*sqrt(m))")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(out_dir / f"delta_k_{tag}.png", dpi=220, bbox_inches="tight")
+    plt.close()
+
+    plt.figure()
+    plt.plot(np.maximum(N, 1.0), a)
+    plt.xscale("log")
+    plt.xlabel("Cycles N")
+    plt.ylabel("a (m)")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(out_dir / f"a_vs_N_{tag}.png", dpi=220, bbox_inches="tight")
+    plt.close()
+
+    plt.figure()
+    plt.hist(np.log10(np.maximum(life_samples, 1.0)), bins=40)
+    plt.xlabel("log10(cycles)")
+    plt.ylabel("count")
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(out_dir / f"life_histogram_{tag}.png", dpi=220, bbox_inches="tight")
+    plt.close()
+
+    stats = {
+        "tag": tag,
+        "n_points": int(len(a)),
+        "life_det": life_det,
+        "life_mc_mean": float(np.mean(life_samples)),
+        "life_mc_std": float(np.std(life_samples)),
+        "life_mc_p05": float(np.percentile(life_samples, 5)),
+        "life_mc_p50": float(np.percentile(life_samples, 50)),
+        "life_mc_p95": float(np.percentile(life_samples, 95)),
+    }
+    (out_dir / f"lifing_stats_{tag}.json").write_text(json.dumps(stats, indent=2), encoding="utf-8")
+
+
+def run_crack_length_lifing_comparison(cfg: ValConfig) -> None:
+    out_dir = cfg.lifing_out_dir
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    det_rows = _collect_ki_vs_a_from_summaries(cfg.sweep_root, cfg.deterministic_glob, stochastic=False)
+    stoch_rows = _collect_ki_vs_a_from_summaries(cfg.sweep_root, cfg.stochastic_glob, stochastic=True)
+    if not det_rows or not stoch_rows:
+        logging.warning("Skipping crack-length lifing comparison. Missing deterministic or stochastic validated runs.")
+        return
+
+    n = min(len(det_rows), len(stoch_rows))
+    det_rows = det_rows[:n]
+    stoch_rows = stoch_rows[:n]
+
+    det_csv = out_dir / "ki_vs_a_deterministic.csv"
+    stoch_csv = out_dir / "ki_vs_a_stochastic.csv"
+    _write_ki_csv(det_csv, det_rows)
+    _write_ki_csv(stoch_csv, stoch_rows)
+    _run_lifing_chain(cfg, det_csv, out_dir, "deterministic")
+    _run_lifing_chain(cfg, stoch_csv, out_dir, "stochastic")
 
 def main():
     setup_logging()
@@ -739,12 +1049,16 @@ def main():
             )
 
         logging.info(f"Found realization IDs: {ids}")
+        summaries: List[Dict[str, Any]] = []
         for rid in ids:
-            run_one_validation(cfg, rid)
+            summaries.append(run_one_validation(cfg, rid))
+        write_aggregate_summary(cfg, summaries)
     else:
         run_one_validation(cfg, cfg.realization_id)
+
+    if cfg.run_crack_length_sweep:
+        run_crack_length_lifing_comparison(cfg)
 
 
 if __name__ == "__main__":
     main()
-
