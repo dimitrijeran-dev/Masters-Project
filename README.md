@@ -333,6 +333,33 @@ Output:
 
 - `life_histogram.png`
 
+
+## Pipeline Drivers (Manifest-based Orchestration)
+
+Two orchestration drivers are available in `pipelines/`:
+
+- `pipelines/run_deterministic_study.py`
+- `pipelines/run_stochastic_study.py`
+
+Both scripts:
+
+- accept a manifest path,
+- execute steps in order by importing and calling module functions,
+- stop if metadata compatibility checks fail,
+- and write a top-level summary report with artifact paths and key metrics.
+
+Example manifests are included at:
+
+- `pipelines/manifests/deterministic_manifest.example.json`
+- `pipelines/manifests/stochastic_manifest.example.json`
+
+Run examples:
+
+```bash
+python pipelines/run_deterministic_study.py pipelines/manifests/deterministic_manifest.example.json
+python pipelines/run_stochastic_study.py pipelines/manifests/stochastic_manifest.example.json
+```
+
 ## DCM and Geometry-Factor Utilities
 
 The `src/` utilities support displacement-correlation measurements, experimental/NX post-processing, and geometry-factor extraction.
