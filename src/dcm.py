@@ -125,7 +125,7 @@ def compute_mode_i_sif(displacement: CrackFaceDisplacement, material: Material) 
     mu = material.shear_modulus()
     kap = material.kappa()
     opening = displacement.delta_uy()
-    sif = (2.0 * mu / (kap + 1.0)) * opening * math.sqrt(2.0 * math.pi / displacement.r)
+    sif = (mu / (kap + 1.0)) * opening * math.sqrt(2.0 * math.pi / displacement.r)
     return ModeIResult(sif=sif, displacement=displacement, material=material)
 
 
@@ -133,7 +133,7 @@ def compute_mode_i_from_cod(Eprime: float, cod: float, r: float) -> float:
     """Compute K_I directly from COD using K_I = (E'/4) * COD * sqrt(2*pi/r)."""
     if r <= 0:
         raise ValueError("Radial distance r must be positive for DCM.")
-    return (Eprime / 4.0) * cod * math.sqrt(2.0 * math.pi / r)
+    return (Eprime / 8.0) * cod * math.sqrt(2.0 * math.pi / r)
 
 
 def estimate_plateau_ki(
@@ -181,9 +181,9 @@ def estimate_plateau_ki(
 
     # Robust multi-point fit:
     # cod(r) = m * sqrt(r), and KI = [2*mu/(kappa+1)] * m * sqrt(2*pi)
-    x = np.sqrt(r_arr)
-    y = cod_arr
-    c_ki = (2.0 * material.shear_modulus() / (material.kappa() + 1.0)) * math.sqrt(2.0 * math.pi)
+    # x = np.sqrt(r_arr)
+    # y = cod_arr
+    # c_ki = (2.0 * material.shear_modulus() / (material.kappa() + 1.0)) * math.sqrt(2.0 * math.pi)
     # cod(r) = m * sqrt(r), and KI = (E'/8) * m * sqrt(2*pi)
     x = np.sqrt(r_arr)
     y = cod_arr

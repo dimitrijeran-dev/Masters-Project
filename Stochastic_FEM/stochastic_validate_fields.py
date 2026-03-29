@@ -97,7 +97,7 @@ class ValConfig:
     crack_face_exclusion: float = 5.0e-4
     
     # Interaction Integral
-    use_interaction_integral_for_stochastic: bool = True
+    use_interaction_integral_for_stochastic: bool = False
     E_tip_for_aux: Optional[float] = None
     interaction_modes: Tuple[str, ...] = ("I", "II")
     interaction_formulation: str = "constant_tensor"
@@ -115,8 +115,8 @@ class ValConfig:
 
     # Optional DCM post-processing from nodal crack-face displacements
     enable_dcm_from_fields: bool = True
-    dcm_r_min: float = 2.0e-4
-    dcm_r_max: float = 2.0e-3
+    dcm_r_min: float = 8.0e-3
+    dcm_r_max: float = 1.5e-2
     dcm_n_bins: int = 48
     dcm_y_band_scale: float = 1.5
     dcm_use_median: bool = True
@@ -757,7 +757,7 @@ def plot_dcm_ki_vs_r(samples: List[Dict[str, Any]], ki_ref: float, out_png: Path
     plt.figure()
     plt.plot(r_use, ki_use, marker="o", label="DCM pointwise $K_I$")
     plt.axhline(float(ki_ref), linestyle="--", label="DCM fitted $K_I$")
-    # plt.xscale("log")
+    plt.xscale("log")
     plt.xlabel("r behind tip (m)")
     plt.ylabel("DCM $K_I$ (Pa*sqrt(m))")
     plt.title("DCM $K_I$ vs radial distance")

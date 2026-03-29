@@ -14,9 +14,9 @@
   "plane_stress": true,
   "thickness": 0.002,
   "stochastic_E": true,
-  "E_mode": "uniform_bounded",
-  "E_rel_std": 0.005,
-  "E_rel_clip": 0.005,
+  "E_mode": "kl_lognormal",
+  "E_rel_std": 0.01,
+  "E_rel_clip": 0.01,
   "random_seed": 5,
   "n_realizations": 5,
   "kl_n_terms": 24,
@@ -55,7 +55,16 @@
   "realization_id": 0,
   "realization_seed": 5,
   "seed_derivation_rule": "realization_seed = random_seed + realization_id",
-  "manifest_hash_sha256": "931a93255590353d7525dd2f399eea5efdac41c50150c1eb54ac64a8c60ee61f",
-  "E_elem_mean": 73097048909.37137,
-  "E_elem_std": 212478000.2803783
+  "manifest_hash_sha256": "c08e6179327259ad5b4d39a245702143388dea60861654be35a23941299cc5be",
+  "E_elem_mean": 74666918070.22346,
+  "E_elem_std": 746183085.0546714,
+  "kl": {
+    "n_elements": 3027,
+    "n_landmarks": 250,
+    "n_terms": 11,
+    "captured_var": 0.9916201038830549,
+    "kernel": "squared_exponential",
+    "corr_len_x": 0.05,
+    "corr_len_y": 0.05
+  }
 }

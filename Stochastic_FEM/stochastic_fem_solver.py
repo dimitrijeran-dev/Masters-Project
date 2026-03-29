@@ -61,9 +61,9 @@ class SolverConfig:
 
     # Stochastic material settings
     stochastic_E: bool = True
-    E_mode: str = "uniform_bounded"  # uniform_bounded, gaussian_clipped, kl_lognormal
-    E_rel_std: float = 0.005
-    E_rel_clip: float = 0.005
+    E_mode: str = "kl_lognormal"  # uniform_bounded, gaussian_clipped, kl_lognormal
+    E_rel_std: float = 0.01
+    E_rel_clip: float = 0.01
     random_seed: int = 5
     n_realizations: int = 5
 
