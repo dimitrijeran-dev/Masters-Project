@@ -44,7 +44,9 @@ Notes
 from __future__ import annotations
 
 import logging
+import json
 from dataclasses import dataclass
+from pathlib import Path
 from typing import List, Optional, Tuple
 
 import numpy as np
@@ -831,6 +833,102 @@ def sweep_interaction_rout(
             )
         )
     return out
+
+
+def select_stable_jstar_window(r_out, ki, window_size: int = 3) -> dict:
+    r = np.asarray(r_out, dtype=float)
+    k = np.asarray(ki, dtype=float)
+    if r.size != k.size or r.size == 0:
+        raise ValueError("r_out and ki must be same non-zero length")
+    if r.size <= window_size:
+        idx = int(np.argmin(np.abs(k - np.median(k))))
+        return {
+            "window_size": int(r.size),
+            "window_start": 0,
+            "window_end": int(r.size - 1),
+            "selected_index": idx,
+            "selected_r_out": float(r[idx]),
+            "selected_KI": float(k[idx]),
+        }
+
+    best_i = 0
+    best_score = float("inf")
+    for i in range(0, r.size - window_size + 1):
+        rr = r[i : i + window_size]
+        kk = k[i : i + window_size]
+        A = np.vstack([rr, np.ones_like(rr)]).T
+        slope, _ = np.linalg.lstsq(A, kk, rcond=None)[0]
+        ref = float(np.median(kk))
+        score = abs(float(slope)) * (rr[-1] - rr[0]) / (abs(ref) + 1e-30) + float(np.std(kk) / (abs(ref) + 1e-30))
+        if score < best_score:
+            best_i = i
+            best_score = score
+
+    seg = k[best_i : best_i + window_size]
+    local_idx = int(np.argmin(np.abs(seg - np.median(seg))))
+    idx = best_i + local_idx
+    return {
+        "window_size": int(window_size),
+        "window_start": int(best_i),
+        "window_end": int(best_i + window_size - 1),
+        "selected_index": int(idx),
+        "selected_r_out": float(r[idx]),
+        "selected_KI": float(k[idx]),
+    }
+
+
+def extract_ki_jstar_from_fields(
+    fields_npz_path,
+    metadata_path,
+    r_in,
+    r_out_list,
+    crack_face_exclusion,
+) -> dict:
+    fields_npz_path = Path(fields_npz_path)
+    metadata_path = Path(metadata_path)
+    data = np.load(fields_npz_path)
+    meta = json.loads(metadata_path.read_text(encoding="utf-8"))
+    pts = np.asarray(data["pts"], dtype=float)
+    conn = np.asarray(data["conn"], dtype=int)
+    U = np.asarray(data["u"], dtype=float)
+    E_elem = np.asarray(data["E_elem"], dtype=float) if "E_elem" in data else None
+    E_scalar = float(np.mean(E_elem)) if E_elem is not None else float(meta.get("E_mean", meta.get("E")))
+    nu = float(meta["nu"])
+    plane_stress = bool(meta.get("plane_stress", True))
+    tip = np.asarray(meta["tip"], dtype=float)
+    crack_start = np.asarray(meta.get("crack_start", [0.0, 0.0]), dtype=float)
+    crack_dir = np.asarray(meta.get("crack_dir", [1.0, 0.0]), dtype=float)
+
+    sweep = sweep_J_rout(
+        pts=pts,
+        conn=conn,
+        U=U,
+        tip=tip,
+        E=E_scalar,
+        E_elem=E_elem,
+        E_for_KI=E_scalar,
+        nu=nu,
+        plane_stress=plane_stress,
+        r_in=float(r_in),
+        r_out_list=list(r_out_list),
+        crack_dir=crack_dir,
+        crack_start=crack_start,
+        crack_end=tip,
+        exclude_crack_faces=True,
+        crack_face_exclusion=float(crack_face_exclusion),
+        log_each=False,
+    )
+    r_out = [float(s.r_out) for s in sweep]
+    J_vals = [float(s.J) for s in sweep]
+    KI_vals = [float(s.KI) for s in sweep]
+    stable = select_stable_jstar_window(r_out, KI_vals, window_size=3)
+    return {
+        "r_out": r_out,
+        "J_star": J_vals,
+        "KI": KI_vals,
+        "stable_window": stable,
+        "KI_Jstar": stable["selected_KI"],
+    }
 
 
 if __name__ == "__main__":

@@ -1,0 +1,18 @@
+{
+  "run_name": "gpc_scalar_E_example",
+  "base_output_dir": "Data/New Data",
+  "solver_run_dir": "Data/New Data/meshrun_25mm",
+  "quadrature_order": 3,
+  "polynomial_order": 2,
+  "compute_jstar": true,
+  "compute_dcm": true,
+  "random_inputs": [
+    {
+      "name": "E_mean",
+      "distribution": "normal",
+      "mean": 73100000000.0,
+      "std": 365500000.0,
+      "order": 3
+    }
+  ]
+}
