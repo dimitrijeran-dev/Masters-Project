@@ -461,3 +461,7 @@ At this point the repository is no longer just a single fracture-validation scri
 - post-process displacement data with DCM,
 - build `K_I(a)` and `Delta K(a)` curves,
 - and estimate fatigue life distributions.
+
+## Git hygiene
+
+If pull requests were opened in the wrong order, use the recovery guide in `docs/pr-order-recovery.md`.
