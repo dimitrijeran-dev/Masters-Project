@@ -130,10 +130,10 @@ def compute_mode_i_sif(displacement: CrackFaceDisplacement, material: Material) 
 
 
 def compute_mode_i_from_cod(Eprime: float, cod: float, r: float) -> float:
-    """Compute K_I directly from COD using the classical E'/8 relation."""
+    """Compute K_I directly from COD using K_I = (E'/4) * COD * sqrt(2*pi/r)."""
     if r <= 0:
         raise ValueError("Radial distance r must be positive for DCM.")
-    return (Eprime / 8.0) * cod * math.sqrt(2.0 * math.pi / r)
+    return (Eprime / 4.0) * cod * math.sqrt(2.0 * math.pi / r)
 
 
 def estimate_plateau_ki(
@@ -155,31 +155,77 @@ def estimate_plateau_ki(
     """
     vals: list[float] = []
     rs: list[float] = []
+    cods: list[float] = []
     samples: list[dict] = []
     for rec in records:
         out = compute_mode_i_sif(rec, material)
         sif = float(out.sif)
+        cod = float(rec.delta_uy())
         vals.append(sif)
         rs.append(float(rec.r))
+        cods.append(cod)
         samples.append(
             {
                 "r": float(rec.r),
                 "uy_upper": float(rec.uy_upper),
                 "uy_lower": float(rec.uy_lower),
+                "cod": cod,
                 "KI": sif,
             }
         )
     if not vals:
         raise ValueError("No displacement records provided for DCM plateau estimation.")
     arr = np.asarray(vals, dtype=float)
-    ref = float(np.median(arr) if use_median else np.mean(arr))
+    r_arr = np.asarray(rs, dtype=float)
+    cod_arr = np.asarray(cods, dtype=float)
+
+    # Robust multi-point fit:
+    # cod(r) = m * sqrt(r), and KI = [2*mu/(kappa+1)] * m * sqrt(2*pi)
+    x = np.sqrt(r_arr)
+    y = cod_arr
+    c_ki = (2.0 * material.shear_modulus() / (material.kappa() + 1.0)) * math.sqrt(2.0 * math.pi)
+
+    # Inlier filtering based on pointwise KI residuals (median/MAD), then
+    # through-origin least-squares fit on cod-vs-sqrt(r).
+    if use_median:
+        center = float(np.median(arr))
+    else:
+        center = float(np.mean(arr))
+    resid = arr - center
+    mad = float(np.median(np.abs(resid)))
+    if mad > 0.0:
+        inlier_mask = np.abs(resid) <= 3.0 * 1.4826 * mad
+    else:
+        inlier_mask = np.ones_like(arr, dtype=bool)
+    if int(np.count_nonzero(inlier_mask)) < 3:
+        inlier_mask = np.ones_like(arr, dtype=bool)
+
+    x_in = x[inlier_mask]
+    y_in = y[inlier_mask]
+    denom = float(np.dot(x_in, x_in))
+    if denom <= 0.0:
+        raise ValueError("Invalid DCM fit: zero denominator in cod-vs-sqrt(r) regression.")
+    slope = float(np.dot(x_in, y_in) / denom)
+    ki_fit = float(c_ki * slope)
+
+    y_hat = slope * x_in
+    sse = float(np.sum((y_in - y_hat) ** 2))
+    sst = float(np.sum((y_in - np.mean(y_in)) ** 2))
+    fit_r2 = float(1.0 - sse / sst) if sst > 0.0 else 1.0
+
     return {
-        "KI_ref": ref,
+        "KI_ref": ki_fit,
         "KI_mean": float(np.mean(arr)),
         "KI_std": float(np.std(arr)),
         "n_samples": int(arr.size),
+        "n_inliers": int(np.count_nonzero(inlier_mask)),
         "r_min": float(np.min(rs)),
         "r_max": float(np.max(rs)),
+        "fit_model": "cod_vs_sqrt_r_through_origin",
+        "fit_slope_cod_per_sqrtm": slope,
+        "fit_r2": fit_r2,
+        "KI_pointwise_median": float(np.median(arr)),
+        "KI_pointwise_mean": float(np.mean(arr)),
         "samples": samples,
     }
 
