@@ -101,6 +101,7 @@ class ValConfig:
     E_tip_for_aux: Optional[float] = None
     interaction_modes: Tuple[str, ...] = ("I", "II")
     interaction_use_inhomogeneity_correction: bool = True
+    interaction_take_abs_KI: bool = True
 
     # Output control
     export_csv: bool = True
@@ -822,7 +823,8 @@ def run_one_validation(
         )
 
         r_outs = [float(s.r_out) for s in sweep]
-        KI_vals = [float(s.KI) for s in sweep]
+        KI_signed_vals = [float(s.KI) for s in sweep]
+        KI_vals = [abs(v) for v in KI_signed_vals] if cfg.interaction_take_abs_KI else KI_signed_vals
         KII_vals = [float(s.KII) for s in sweep]
         J_vals = None
 
@@ -923,6 +925,7 @@ def run_one_validation(
         "applied": bool(use_interaction),
         "modes": list(cfg.interaction_modes),
         "use_inhomogeneity_correction": bool(cfg.interaction_use_inhomogeneity_correction),
+        "take_abs_KI": bool(cfg.interaction_take_abs_KI),
         "E_tip_for_aux": float(E_tip) if use_interaction else (float(cfg.E_tip_for_aux) if cfg.E_tip_for_aux is not None else None),
         "interaction_impl_available": bool(sweep_interaction_rout is not None),
     },
@@ -947,6 +950,9 @@ def run_one_validation(
     if KII_vals is not None:
         summary["KII_list"] = KII_vals
         summary["KII_ref"] = float(KII_vals[best_idx])
+    if use_interaction:
+        summary["KI_signed_list"] = KI_signed_vals
+        summary["KI_ref_signed"] = float(KI_signed_vals[best_idx])
 
     if cfg.enable_dcm_from_fields:
         dcm_summary = estimate_dcm_from_fields(
@@ -1215,6 +1221,10 @@ def main():
             merged_val_cfg.get("interaction_use_inhomogeneity_correction"),
             cfg.interaction_use_inhomogeneity_correction,
         )
+        cfg.interaction_take_abs_KI = _as_bool(
+            merged_val_cfg.get("interaction_take_abs_KI"),
+            cfg.interaction_take_abs_KI,
+        )
 
         # Backward compatible aliases for DCM toggles.
         dcm_enabled_raw = merged_val_cfg.get(
@@ -1253,6 +1263,7 @@ def main():
                     "use_interaction_integral_for_stochastic": cfg.use_interaction_integral_for_stochastic,
                     "interaction_modes": list(cfg.interaction_modes),
                     "interaction_use_inhomogeneity_correction": cfg.interaction_use_inhomogeneity_correction,
+                    "interaction_take_abs_KI": cfg.interaction_take_abs_KI,
                     "E_tip_for_aux": cfg.E_tip_for_aux,
                 },
                 "rng": {"seed_derivation_rule": "realization_seed = base_seed + realization_id"},
