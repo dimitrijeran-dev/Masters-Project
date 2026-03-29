@@ -702,6 +702,27 @@ def relative_span(vals: List[float], ref_val: float) -> float:
         return float("nan")
     return float((np.max(arr) - np.min(arr)) / abs(ref_val))
 
+def _safe_cov(std: float, mean: float) -> float:
+    if abs(mean) < 1e-30:
+        return float("nan")
+    return float(std / mean)
+
+
+def _metric_stats(values: List[float]) -> dict:
+    arr = np.asarray(values, dtype=float)
+    mean = float(np.mean(arr))
+    std = float(np.std(arr))
+    return {
+        "mean": mean,
+        "std": std,
+        "cov": _safe_cov(std, mean),
+        "p5": float(np.percentile(arr, 5.0)),
+        "p50": float(np.percentile(arr, 50.0)),
+        "p95": float(np.percentile(arr, 95.0)),
+    }
+
+
+def run_one_validation(cfg: ValConfig, realization_id: Optional[int]) -> dict:
 def run_one_validation(cfg: ValConfig, realization_id: Optional[int], manifest_hash: Optional[str] = None) -> None:
 def run_one_validation(cfg: ValConfig, realization_id: Optional[int]) -> Dict[str, Any]:
     suffix = f"_mc{realization_id:04d}" if realization_id is not None else ""
@@ -835,6 +856,15 @@ def run_one_validation(cfg: ValConfig, realization_id: Optional[int]) -> Dict[st
     summary = {
     "run_name": cfg.run_dir.name,
     "realization_id": realization_id,
+    "seed": meta.get("random_seed"),
+    "nsamples": meta.get("n_realizations"),
+    "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa",
+    },
     "geometry_type": meta.get("geometry_type"),
     "a": meta.get("a"),
     "tip": tip.tolist(),
@@ -890,6 +920,55 @@ def run_one_validation(cfg: ValConfig, realization_id: Optional[int]) -> Dict[st
     return summary
 
 
+def write_all_realization_summaries(run_dir: Path, summaries: List[dict]) -> None:
+    if not summaries:
+        return
+
+    ki_refs = [float(s["KI_ref"]) for s in summaries if s.get("KI_ref") is not None]
+    j_refs = [float(s["J_ref"]) for s in summaries if s.get("J_ref") is not None]
+
+    aggregate = {
+        "metadata": {
+            "run_name": summaries[0].get("run_name", run_dir.name),
+            "seed": summaries[0].get("seed"),
+            "nsamples": len(summaries),
+            "units": summaries[0].get("units", {}),
+        },
+        "metrics_by_realization_set": {
+            "KI_ref": _metric_stats(ki_refs) if ki_refs else None,
+            "J_star_ref": _metric_stats(j_refs) if j_refs else None,
+        },
+        "realizations": summaries,
+    }
+    (run_dir / "validation_summary_all_realizations.json").write_text(
+        json.dumps(aggregate, indent=2), encoding="utf-8"
+    )
+
+    csv_path = run_dir / "validation_summary_all_realizations.csv"
+    fieldnames = [
+        "run_name",
+        "seed",
+        "nsamples",
+        "realization_id",
+        "best_r_out",
+        "KI_ref",
+        "J_star_ref",
+    ]
+    with open(csv_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for s in summaries:
+            writer.writerow(
+                {
+                    "run_name": s.get("run_name"),
+                    "seed": s.get("seed"),
+                    "nsamples": s.get("nsamples"),
+                    "realization_id": s.get("realization_id"),
+                    "best_r_out": s.get("best_r_out"),
+                    "KI_ref": s.get("KI_ref"),
+                    "J_star_ref": s.get("J_ref"),
+                }
+            )
 def write_aggregate_summary(cfg: ValConfig, summaries: List[Dict[str, Any]]) -> None:
     if not summaries:
         return
@@ -1081,6 +1160,10 @@ def main():
             )
 
         logging.info(f"Found realization IDs: {ids}")
+        summaries = []
+        for rid in ids:
+            summaries.append(run_one_validation(cfg, rid))
+        write_all_realization_summaries(cfg.run_dir, summaries)
         summaries: List[Dict[str, Any]] = []
         for rid in ids:
             run_one_validation(cfg, rid, manifest_hash=manifest_hash)
