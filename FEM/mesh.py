@@ -15,6 +15,9 @@ from src.configs.geometry import geometry_payload
 from src.configs.material import material_payload
 from src.configs.run_io import update_runtime_config
 
+from datetime import datetime
+import json
+from src.run_manifest import write_run_manifest
 
 # ----------------------------
 # Config
@@ -398,6 +401,33 @@ def main():
 
     cfg.out_dir = cfg.base_out_dir / cfg.run_name
     cfg.out_dir.mkdir(parents=True, exist_ok=True)
+
+    _, manifest_hash = write_run_manifest(
+        cfg.out_dir,
+        {
+            "workflow": "FEM.mesh",
+            "geometry_mesh": {
+                "W": cfg.W,
+                "H": cfg.H,
+                "a": cfg.a,
+                "crack_gap": cfg.crack_gap,
+                "lc_global": cfg.lc_global,
+                "lc_tip": cfg.lc_tip,
+                "tip_refine_r": cfg.tip_refine_r,
+            },
+            "solver": {
+                "E": cfg.E,
+                "nu": cfg.nu,
+                "plane_stress": cfg.plane_stress,
+                "thickness": cfg.thickness,
+                "traction": cfg.traction,
+            },
+            "rng": {
+                "seed_derivation_rule": "deterministic_no_rng",
+            },
+        },
+    )
+    logging.info(f"Run manifest hash: {manifest_hash}")
 
     msh_path = cfg.out_dir / "plate_edge_crack_q4.msh"
     runtime_cfg_path = cfg.out_dir / "runtime_config.json"

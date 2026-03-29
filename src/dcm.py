@@ -32,6 +32,7 @@ import math
 from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Iterable, List, Optional
+import numpy as np
 
 if TYPE_CHECKING:  # pragma: no cover
     import pandas as pd
@@ -133,6 +134,54 @@ def compute_mode_i_from_cod(Eprime: float, cod: float, r: float) -> float:
     if r <= 0:
         raise ValueError("Radial distance r must be positive for DCM.")
     return (Eprime / 8.0) * cod * math.sqrt(2.0 * math.pi / r)
+
+
+def estimate_plateau_ki(
+    records: Iterable[CrackFaceDisplacement],
+    material: Material,
+    use_median: bool = True,
+) -> dict:
+    """
+    Programmatic helper for stochastic/postprocessing workflows.
+
+    Parameters
+    ----------
+    records:
+        Iterable of crack-face displacement samples.
+    material:
+        Material properties for DCM conversion.
+    use_median:
+        True -> robust median plateau, False -> mean plateau.
+    """
+    vals: list[float] = []
+    rs: list[float] = []
+    samples: list[dict] = []
+    for rec in records:
+        out = compute_mode_i_sif(rec, material)
+        sif = float(out.sif)
+        vals.append(sif)
+        rs.append(float(rec.r))
+        samples.append(
+            {
+                "r": float(rec.r),
+                "uy_upper": float(rec.uy_upper),
+                "uy_lower": float(rec.uy_lower),
+                "KI": sif,
+            }
+        )
+    if not vals:
+        raise ValueError("No displacement records provided for DCM plateau estimation.")
+    arr = np.asarray(vals, dtype=float)
+    ref = float(np.median(arr) if use_median else np.mean(arr))
+    return {
+        "KI_ref": ref,
+        "KI_mean": float(np.mean(arr)),
+        "KI_std": float(np.std(arr)),
+        "n_samples": int(arr.size),
+        "r_min": float(np.min(rs)),
+        "r_max": float(np.max(rs)),
+        "samples": samples,
+    }
 
 
 def _format_result(result: ModeIResult) -> str:

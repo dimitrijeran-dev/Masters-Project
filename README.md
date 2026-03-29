@@ -253,6 +253,7 @@ The fatigue tools build a crack-length history from validated `K_I` data and the
 ### 1. Collect `K_I(a)` from validated deterministic runs
 
 `Lifing/build_ki_csv_from_runs.py` reads `validation_summary.json` from each run folder and extracts `KI_ref`.
+`--a-values` is required and must contain one entry per `--run-dirs` folder.
 
 Example using the run folders already present in `Data/New Data/`:
 
@@ -272,8 +273,6 @@ python Lifing/build_ki_csv_from_runs.py \
   --a-values 0.01 0.015 0.02 0.025 0.03 0.035 0.04 0.045 0.05 0.055 \
   --out-csv "Data/Fatigue Outputs/ki_vs_a.csv"
 ```
-
-Note: pass `--a-values` even though it is marked optional in the parser.
 
 ### 2. Convert `K_I(a)` to `Delta K(a)`
 
@@ -461,3 +460,7 @@ At this point the repository is no longer just a single fracture-validation scri
 - post-process displacement data with DCM,
 - build `K_I(a)` and `Delta K(a)` curves,
 - and estimate fatigue life distributions.
+
+## Git hygiene
+
+If pull requests were opened in the wrong order, use the recovery guide in `docs/pr-order-recovery.md`.

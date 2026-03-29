@@ -35,6 +35,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from src.configs.geometry import geometry_payload
 from src.configs.material import material_payload
 from src.configs.run_io import load_runtime_config, update_runtime_config
+from src.run_manifest import load_run_manifest, write_run_manifest
 
 # ----------------------------
 # Config
@@ -599,7 +600,7 @@ def save_npz_results(npz_path: Path, pts: np.ndarray, quad: np.ndarray, u: np.nd
     )
     logging.info(f"Wrote NPZ: {npz_path}")
     
-def save_metadata(cfg: SolverConfig, J: float, KI: float):
+def save_metadata(cfg: SolverConfig, J: float, KI: float, manifest_hash: Optional[str] = None):
     meta = {
         "run_name": cfg.run_name,
         "W": cfg.W,
@@ -614,6 +615,7 @@ def save_metadata(cfg: SolverConfig, J: float, KI: float):
         "traction_bottom": list(cfg.traction_bottom),
         "J": J,
         "KI": KI,
+        "manifest_hash_sha256": manifest_hash,
     }
     with open(cfg.meta_path, "w") as f:
         json.dump(meta, f, indent=2)
@@ -649,6 +651,42 @@ def main():
         cfg.nu = float(mat_cfg.get("nu", cfg.nu))
         cfg.plane_stress = bool(mat_cfg.get("plane_stress", cfg.plane_stress))
         cfg.thickness = float(mat_cfg.get("thickness", cfg.thickness))
+    manifest_path = cfg.run_dir / "run_manifest.json"
+    if manifest_path.exists():
+        manifest = load_run_manifest(cfg.run_dir)
+        manifest_hash = manifest.get("manifest_hash_sha256")
+    else:
+        _, manifest_hash = write_run_manifest(
+            cfg.run_dir,
+            {
+                "workflow": "FEM.fem_solver",
+                "geometry_mesh": {
+                    "W": cfg.W,
+                    "H": cfg.H,
+                    "a": cfg.a,
+                    "crack_gap": cfg.crack_gap,
+                    "mesh_file": str(cfg.msh_path),
+                },
+                "solver": {
+                    "E": cfg.E,
+                    "nu": cfg.nu,
+                    "plane_stress": cfg.plane_stress,
+                    "thickness": cfg.thickness,
+                    "traction_top": list(cfg.traction_top),
+                    "traction_bottom": list(cfg.traction_bottom),
+                },
+                "validation": {
+                    "j_integral_r_in": 0.015,
+                    "j_integral_r_out": 0.035,
+                    "j_sweep_r_in": 0.01,
+                    "j_sweep_r_out_list": [0.02, 0.025, 0.03, 0.035],
+                    "crack_face_exclusion_rule": "5*crack_gap",
+                },
+                "rng": {
+                    "seed_derivation_rule": "deterministic_no_rng",
+                },
+            },
+        )
 
     logging.info(f"Reading mesh: {cfg.msh_path}")
     pts, quad, lines, line_phys, phys_map = read_gmsh_quad_mesh(cfg.msh_path)
@@ -781,6 +819,7 @@ def main():
             },
         },
     )
+    save_metadata(cfg, J, KI, manifest_hash=manifest_hash)
 
     res = sweep_J_rout(
         pts=pts, conn=quad, U=u, tip=tip,
@@ -800,7 +839,8 @@ def main():
         filename=cfg.run_name,
         J=J,
         KI=KI,
-        cfg=cfg
+        cfg=cfg,
+        extra={"manifest_hash_sha256": manifest_hash},
     )
 
 if __name__ == "__main__":

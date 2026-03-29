@@ -33,6 +33,11 @@ import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Optional, Tuple
+import sys
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(ROOT))
+from src.run_manifest import write_run_manifest
 
 from src.configs.geometry import geometry_payload
 from src.configs.material import material_payload
@@ -407,9 +412,27 @@ def main() -> None:
 
     cfg.out_dir = cfg.base_out_dir / cfg.run_name
     cfg.out_dir.mkdir(parents=True, exist_ok=True)
+    _, manifest_hash = write_run_manifest(
+        cfg.out_dir,
+        {
+            "workflow": "Stochastic_FEM.stochastic_mesh",
+            "geometry_mesh": jsonable_dict(asdict(cfg)),
+            "solver": {},
+            "validation": {},
+            "lifing": {},
+            "rng": {
+                "seed_derivation_rule": "solver_seed_for_realization_i = random_seed + i",
+            },
+        },
+    )
 
     msh_path = cfg.out_dir / "mesh_q4.msh"
     build_mesh_gmsh_quads(cfg, msh_path)
+    meta_path = cfg.out_dir / "geometry_metadata.json"
+    if meta_path.exists():
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        meta["manifest_hash_sha256"] = manifest_hash
+        meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
 
 
 if __name__ == "__main__":
