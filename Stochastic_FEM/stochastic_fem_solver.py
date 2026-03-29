@@ -37,8 +37,8 @@ class SolverConfig:
     geometry_type: str = "plate_edge_crack"  # plate_edge_crack or plate_hole_edge_crack
 
     # Geometry
-    W: float = 1.0
-    H: float = 0.5
+    W: float = 0.2
+    H: float = 0.1
     a: float = 0.040
     crack_gap: float = 5e-5
     hole_radius: float = 0.010
@@ -611,7 +611,7 @@ def main():
     setup_logging()
     cfg = SolverConfig()
     if cfg.run_name is None:
-        cfg.run_name = f"Smaller_rin_{cfg.geometry_type}"
+        cfg.run_name = f"Deterministic_config_{cfg.geometry_type}"
     cfg.run_dir = cfg.base_out_dir / cfg.run_name
     cfg.run_dir.mkdir(parents=True, exist_ok=True)
 

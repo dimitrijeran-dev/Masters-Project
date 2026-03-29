@@ -1,0 +1,58 @@
+{
+  "base_out_dir": "Data/New Data",
+  "run_name": "New_rout_plate_edge_crack",
+  "run_dir": "Data/New Data/New_rout_plate_edge_crack",
+  "geometry_type": "plate_edge_crack",
+  "W": 1.0,
+  "H": 0.5,
+  "a": 0.04,
+  "crack_gap": 5e-05,
+  "hole_radius": 0.01,
+  "hole_center": null,
+  "E_mean": 73100000000.0,
+  "nu": 0.33,
+  "plane_stress": true,
+  "thickness": 0.002,
+  "stochastic_E": true,
+  "E_mode": "uniform_bounded",
+  "E_rel_std": 0.005,
+  "E_rel_clip": 0.005,
+  "random_seed": 5,
+  "n_realizations": 5,
+  "kl_n_terms": 24,
+  "kl_landmarks": 250,
+  "kl_corr_len_x": 0.05,
+  "kl_corr_len_y": 0.05,
+  "kl_kernel": "squared_exponential",
+  "kl_chunk_size": 4000,
+  "kl_jitter": 1e-10,
+  "kl_var_tol": 0.99,
+  "fix_bottom_uy": true,
+  "traction_top": [
+    0.0,
+    50000000.0
+  ],
+  "traction_bottom": [
+    0.0,
+    0.0
+  ],
+  "msh_name": "mesh_q4.msh",
+  "vtk_name": "solution_q4.vtk",
+  "npz_name": "fields.npz",
+  "meta_name": "metadata.json",
+  "tip": [
+    0.04,
+    0.0
+  ],
+  "crack_start": [
+    0.0,
+    0.0
+  ],
+  "crack_dir": [
+    1.0,
+    0.0
+  ],
+  "realization_id": 4,
+  "E_elem_mean": 73099105079.30391,
+  "E_elem_std": 211171387.3855849
+}

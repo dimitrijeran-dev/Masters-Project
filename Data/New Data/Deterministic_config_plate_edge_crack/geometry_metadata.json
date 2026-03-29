@@ -1,0 +1,27 @@
+{
+  "base_out_dir": "Data/New Data",
+  "run_name": "Deterministic_config_plate_edge_crack",
+  "out_dir": "Data/New Data/Deterministic_config_plate_edge_crack",
+  "geometry_type": "plate_edge_crack",
+  "W": 0.2,
+  "H": 0.1,
+  "a": 0.04,
+  "crack_gap": 5e-05,
+  "hole_radius": 0.01,
+  "hole_center": null,
+  "lc_global": 0.006,
+  "lc_tip": 0.001,
+  "tip_refine_r": 0.005,
+  "tip": [
+    0.04,
+    0.0
+  ],
+  "crack_start": [
+    0.0,
+    0.0
+  ],
+  "crack_dir": [
+    1.0,
+    0.0
+  ]
+}

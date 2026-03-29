@@ -48,8 +48,8 @@ class MeshConfig:
     geometry_type: str = "plate_edge_crack"   # or "plate_hole_edge_crack"
 
     # Plate dimensions
-    W: float = 1
-    H: float = 0.5
+    W: float = 0.2
+    H: float = 0.1
 
     # Crack geometry
     a: float = 0.040
@@ -366,7 +366,7 @@ def main() -> None:
     cfg = MeshConfig()
 
     if cfg.run_name is None:
-        cfg.run_name = f"Smaller_rin_{cfg.geometry_type}"
+        cfg.run_name = f"Deterministic_config_{cfg.geometry_type}"
 
     cfg.out_dir = cfg.base_out_dir / cfg.run_name
     cfg.out_dir.mkdir(parents=True, exist_ok=True)
