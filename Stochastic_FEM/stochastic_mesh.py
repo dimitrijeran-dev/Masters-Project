@@ -408,7 +408,7 @@ def main() -> None:
     cfg = MeshConfig()
 
     if cfg.run_name is None:
-        cfg.run_name = f"Deterministic_config_{cfg.geometry_type}"
+        cfg.run_name = f"40_mm_{cfg.geometry_type}"
 
     cfg.out_dir = cfg.base_out_dir / cfg.run_name
     cfg.out_dir.mkdir(parents=True, exist_ok=True)

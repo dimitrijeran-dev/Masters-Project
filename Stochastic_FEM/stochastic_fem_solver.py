@@ -623,7 +623,7 @@ def main():
     setup_logging()
     cfg = SolverConfig()
     if cfg.run_name is None:
-        cfg.run_name = f"Deterministic_config_{cfg.geometry_type}"
+        cfg.run_name = f"40_mm_{cfg.geometry_type}"
     cfg.run_dir = cfg.base_out_dir / cfg.run_name
     cfg.run_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = cfg.run_dir / "run_manifest.json"

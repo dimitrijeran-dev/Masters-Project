@@ -64,7 +64,7 @@ except Exception:
     sweep_interaction_rout = None
 
 try:
-    from dcm import CrackFaceDisplacement, Material, estimate_plateau_ki  # type: ignore
+    from src.dcm import CrackFaceDisplacement, Material, estimate_plateau_ki  # type: ignore
 except Exception:
     CrackFaceDisplacement = None  # type: ignore
     Material = None  # type: ignore
@@ -73,7 +73,7 @@ except Exception:
 
 @dataclass
 class ValConfig:
-    run_dir: Path = Path("Data/New Data/Deterministic_config_plate_edge_crack")
+    run_dir: Path = Path("Data/New Data/40_mm_plate_edge_crack")
     realization_id: Optional[int] = None
     run_all_realizations: bool = True
     realization_glob: str = "fields_mc*.npz"
