@@ -75,7 +75,7 @@ except Exception:
 
 @dataclass
 class ValConfig:
-    run_dir: Path = Path("Data/New Data/40_mm_plate_edge_crack")
+    run_dir: Path = Path("Data/New Data/55_mm_plate_edge_crack")
     realization_id: Optional[int] = None
     run_all_realizations: bool = True
     realization_glob: str = "fields_mc*.npz"
@@ -92,8 +92,8 @@ class ValConfig:
     n_r: int = 200
 
     # J sweep
-    r_in: float = 0.006
-    r_out_list: Tuple[float, ...] = (0.01, 0.012, 0.014, 0.016, 0.018, 0.02, 0.022, 0.024, 0.026, 0.028, 0.03, 0.032)
+    r_in: float = 0.008
+    r_out_list: Tuple[float, ...] = (0.020, 0.022, 0.024, 0.026, 0.028, 0.030, 0.032, 0.034, 0.036, 0.038)
     crack_face_exclusion: float = 5.0e-4
     
     # Interaction Integral
@@ -115,8 +115,8 @@ class ValConfig:
 
     # Optional DCM post-processing from nodal crack-face displacements
     enable_dcm_from_fields: bool = True
-    dcm_r_min: float = 8.0e-3
-    dcm_r_max: float = 1.5e-2
+    dcm_r_min: float = 0.013
+    dcm_r_max: float = 0.023
     dcm_n_bins: int = 48
     dcm_y_band_scale: float = 1.5
     dcm_use_median: bool = True

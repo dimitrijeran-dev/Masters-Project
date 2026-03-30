@@ -48,7 +48,7 @@ class SolverConfig:
     # Geometry
     W: float = 0.2
     H: float = 0.1
-    a: float = 0.040
+    a: float = 0.055
     crack_gap: float = 5e-5
     hole_radius: float = 0.010
     hole_center: Optional[Tuple[float, float]] = None
@@ -761,7 +761,7 @@ def main():
     setup_logging()
     cfg = SolverConfig()
     if cfg.run_name is None:
-        cfg.run_name = f"40_mm_{cfg.geometry_type}"
+        cfg.run_name = f"55_mm_{cfg.geometry_type}"
     cfg.run_dir = cfg.base_out_dir / cfg.run_name
     cfg.run_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = cfg.run_dir / "run_manifest.json"

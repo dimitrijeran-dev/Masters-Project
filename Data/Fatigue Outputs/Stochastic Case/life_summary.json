@@ -1,0 +1,7 @@
+{
+  "nsamples": 2000,
+  "seed": 42,
+  "life_log10_mean": 5.340892470913132,
+  "life_log10_std": 0.13486561445107,
+  "manifest_hash_sha256": "ecc927ca48356c0d6d0b70f5c9881a683c4b63703312382fa609a7e80f532b3e"
+}

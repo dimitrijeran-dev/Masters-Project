@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 from __future__ import annotations
 
 import csv
@@ -29,8 +30,8 @@ def run_gpc_study(config: GPCConfig) -> Dict[str, str]:
     run_dir.mkdir(parents=True, exist_ok=True)
 
     base_solver_dir = config.solver_run_dir or run_dir
-    if not (base_solver_dir / "mesh_q4.msh").exists():
-        raise FileNotFoundError(f"Missing mesh_q4.msh in solver_run_dir={base_solver_dir}")
+    if not (base_solver_dir / "plate_edge_crack_q4.msh").exists():
+        raise FileNotFoundError(f"Missing plate_edge_crack_q4.msh in solver_run_dir={base_solver_dir}")
 
     points_raw = tensor_collocation(
         config.random_inputs,
@@ -48,7 +49,7 @@ def run_gpc_study(config: GPCConfig) -> Dict[str, str]:
 
         case_dir = run_dir / f"case_{idx:04d}"
         case_dir.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(base_solver_dir / "mesh_q4.msh", case_dir / "mesh_q4.msh")
+        shutil.copy2(base_solver_dir / "plate_edge_crack_q4.msh", case_dir / "mesh_q4.msh")
 
         rid = config.realization_id_start + idx
         solve_info = run_single_realization_with_overrides(

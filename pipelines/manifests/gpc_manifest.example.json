@@ -1,7 +1,7 @@
 {
   "run_name": "gpc_scalar_E_example",
-  "base_output_dir": "Data/New Data",
-  "solver_run_dir": "Data/New Data/meshrun_25mm",
+  "base_output_dir": "Data/New Data/gpc_study",
+  "solver_run_dir": "Data/New Data/meshrun_40mm",
   "quadrature_order": 3,
   "polynomial_order": 2,
   "compute_jstar": true,

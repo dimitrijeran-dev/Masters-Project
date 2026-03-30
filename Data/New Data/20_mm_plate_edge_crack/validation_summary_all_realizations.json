@@ -1,0 +1,681 @@
+{
+  "run_name": "20_mm_plate_edge_crack",
+  "n_realizations": 5,
+  "realization_ids": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "KI_ref_mean": 12211051.765600938,
+  "KI_ref_std": 25303.840397932778,
+  "KI_ref_cov": 0.0020722081016161763,
+  "KI_ref_min": 12174379.925714288,
+  "KI_ref_max": 12247261.473443942,
+  "summaries": [
+    {
+      "run_name": "20_mm_plate_edge_crack",
+      "realization_id": 0,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.02,
+      "tip": [
+        0.02,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 74469240907.22649,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.004,
+      "r_out_list": [
+        0.007,
+        0.008,
+        0.009,
+        0.01,
+        0.011,
+        0.012,
+        0.013,
+        0.014,
+        0.015
+      ],
+      "KI_list": [
+        11606144.02853618,
+        11840049.07620402,
+        12173992.255526235,
+        12247261.473443942,
+        12220248.313897183,
+        12125285.873506965,
+        12107804.492627107,
+        12163818.18018115,
+        12281048.390916765
+      ],
+      "best_idx": 3,
+      "best_r_out": 0.01,
+      "KI_ref": 12247261.473443942,
+      "KI_relative_span": 0.05510655290931753,
+      "E_elem_mean": 74469240907.22649,
+      "E_elem_std": 743972577.2036749,
+      "manifest_hash_sha256": "85aa40ed4827e9a88d8a7047c38e49ac6259f59f0c3f8128159e1a948a07f9c6",
+      "J_list": [
+        1808.835132063962,
+        1882.478731071851,
+        1990.1651424411236,
+        2014.1928636786834,
+        2005.3174577050852,
+        1974.2722729969512,
+        1968.5836440083174,
+        1986.8400821331265,
+        2025.3214312730195
+      ],
+      "J_ref": 2014.1928636786834,
+      "J_relative_span": 0.1074804221149265,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": true,
+        "window": [
+          0.0036,
+          0.0046
+        ],
+        "y_band": 0.004399498980978079,
+        "n_pairs": 3,
+        "n_inliers": 3,
+        "fit_model": "cod_vs_sqrt_r_through_origin",
+        "fit_r2": 0.6925847260172178,
+        "KI_ref": 19006617.185599748,
+        "KI_mean": 19016733.224335,
+        "KI_std": 188328.2385060322,
+        "KI_relative_span": 0.022124799610768825,
+        "KI_pointwise_median": 18907234.208299585,
+        "KI_pointwise_mean": 19016733.224335,
+        "samples": [
+          {
+            "r": 0.004464583333333334,
+            "uy_upper": 7.693884276702743e-05,
+            "uy_lower": 2.292768782594947e-05,
+            "cod": 5.401115494107796e-05,
+            "KI": 18861223.93409771
+          },
+          {
+            "r": 0.00444375,
+            "uy_upper": 7.712840807696854e-05,
+            "uy_lower": 2.311197048882889e-05,
+            "cod": 5.4016437588139646e-05,
+            "KI": 18907234.208299585
+          },
+          {
+            "r": 0.00396458333333333,
+            "uy_upper": 7.580482820077006e-05,
+            "uy_lower": 2.3773111108866456e-05,
+            "cod": 5.20317170919036e-05,
+            "KI": 19281741.5306077
+          }
+        ],
+        "crack_len": 0.02
+      },
+      "KI_ref_dcm": 19006617.185599748,
+      "KI_ref_dcm_delta_to_J": 0.5519075204536372
+    },
+    {
+      "run_name": "20_mm_plate_edge_crack",
+      "realization_id": 1,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.02,
+      "tip": [
+        0.02,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 72259197683.3759,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.004,
+      "r_out_list": [
+        0.007,
+        0.008,
+        0.009,
+        0.01,
+        0.011,
+        0.012,
+        0.013,
+        0.014,
+        0.015
+      ],
+      "KI_list": [
+        11555253.094603226,
+        11789871.727914073,
+        12125277.54621143,
+        12200781.017875537,
+        12177070.897172822,
+        12085711.334091775,
+        12069591.140832001,
+        12126442.435356935,
+        12243029.261970364
+      ],
+      "best_idx": 3,
+      "best_r_out": 0.01,
+      "KI_ref": 12200781.017875537,
+      "KI_relative_span": 0.05637148690395044,
+      "E_elem_mean": 72259197683.3759,
+      "E_elem_std": 721626114.7634218,
+      "manifest_hash_sha256": "85aa40ed4827e9a88d8a7047c38e49ac6259f59f0c3f8128159e1a948a07f9c6",
+      "J_list": [
+        1847.846064737807,
+        1923.6454294682326,
+        2034.6524772787973,
+        2060.0707206634106,
+        2052.071713894592,
+        2021.395519654355,
+        2016.0067503816836,
+        2035.0434387933456,
+        2074.3624384850727
+      ],
+      "J_ref": 2060.0707206634106,
+      "J_relative_span": 0.1099556299088218,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": true,
+        "window": [
+          0.0036,
+          0.0046
+        ],
+        "y_band": 0.004399498980978079,
+        "n_pairs": 3,
+        "n_inliers": 3,
+        "fit_model": "cod_vs_sqrt_r_through_origin",
+        "fit_r2": 0.6897049249288174,
+        "KI_ref": 18732331.433688637,
+        "KI_mean": 18742331.971213724,
+        "KI_std": 186160.20740977573,
+        "KI_relative_span": 0.022174992157042602,
+        "KI_pointwise_median": 18633726.470736567,
+        "KI_pointwise_mean": 18742331.971213724,
+        "samples": [
+          {
+            "r": 0.004464583333333334,
+            "uy_upper": 7.828916319254401e-05,
+            "uy_lower": 2.342964213174853e-05,
+            "cod": 5.485952106079549e-05,
+            "KI": 18588940.070139717
+          },
+          {
+            "r": 0.00444375,
+            "uy_upper": 7.848096531887415e-05,
+            "uy_lower": 2.361772644500028e-05,
+            "cod": 5.486323887387387e-05,
+            "KI": 18633726.470736567
+          },
+          {
+            "r": 0.00396458333333333,
+            "uy_upper": 7.714563357815848e-05,
+            "uy_lower": 2.429402110982757e-05,
+            "cod": 5.285161246833091e-05,
+            "KI": 19004329.372764885
+          }
+        ],
+        "crack_len": 0.02
+      },
+      "KI_ref_dcm": 18732331.433688637,
+      "KI_ref_dcm_delta_to_J": 0.5353387136646115
+    },
+    {
+      "run_name": "20_mm_plate_edge_crack",
+      "realization_id": 2,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.02,
+      "tip": [
+        0.02,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 72977973335.7903,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.004,
+      "r_out_list": [
+        0.007,
+        0.008,
+        0.009,
+        0.01,
+        0.011,
+        0.012,
+        0.013,
+        0.014,
+        0.015
+      ],
+      "KI_list": [
+        11553288.07334847,
+        11788009.301113147,
+        12125294.869123546,
+        12202591.251757957,
+        12180798.305661151,
+        12090983.060242334,
+        12075305.430764968,
+        12132524.518577773,
+        12249036.614480754
+      ],
+      "best_idx": 3,
+      "best_r_out": 0.01,
+      "KI_ref": 12202591.251757957,
+      "KI_relative_span": 0.05701645878141266,
+      "E_elem_mean": 72977973335.7903,
+      "E_elem_std": 729120319.3026974,
+      "manifest_hash_sha256": "85aa40ed4827e9a88d8a7047c38e49ac6259f59f0c3f8128159e1a948a07f9c6",
+      "J_list": [
+        1829.0240082662679,
+        1904.097317744803,
+        2014.6185066924847,
+        2040.3859747151105,
+        2033.1045188183127,
+        2003.232820544371,
+        1998.041252465851,
+        2017.0216363312052,
+        2055.9477212736892
+      ],
+      "J_ref": 2040.3859747151105,
+      "J_relative_span": 0.1112160717724526,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": true,
+        "window": [
+          0.0036,
+          0.0046
+        ],
+        "y_band": 0.004399498980978079,
+        "n_pairs": 3,
+        "n_inliers": 3,
+        "fit_model": "cod_vs_sqrt_r_through_origin",
+        "fit_r2": 0.690149543752813,
+        "KI_ref": 18727988.460880667,
+        "KI_mean": 18737982.453526266,
+        "KI_std": 186024.58138655633,
+        "KI_relative_span": 0.022151760749150075,
+        "KI_pointwise_median": 18629164.906313997,
+        "KI_pointwise_mean": 18737982.453526266,
+        "samples": [
+          {
+            "r": 0.004464583333333334,
+            "uy_upper": 7.77962053556552e-05,
+            "uy_lower": 2.348863107482558e-05,
+            "cod": 5.430757428082962e-05,
+            "KI": 18584962.267283265
+          },
+          {
+            "r": 0.00444375,
+            "uy_upper": 7.798546928083021e-05,
+            "uy_lower": 2.36758884920901e-05,
+            "cod": 5.430958078874011e-05,
+            "KI": 18629164.906313997
+          },
+          {
+            "r": 0.00396458333333333,
+            "uy_upper": 7.666863303498067e-05,
+            "uy_lower": 2.434998406109917e-05,
+            "cod": 5.23186489738815e-05,
+            "KI": 18999820.186981536
+          }
+        ],
+        "crack_len": 0.02
+      },
+      "KI_ref_dcm": 18727988.460880667,
+      "KI_ref_dcm_delta_to_J": 0.5347550429653729
+    },
+    {
+      "run_name": "20_mm_plate_edge_crack",
+      "realization_id": 3,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.02,
+      "tip": [
+        0.02,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 76368191811.44775,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.004,
+      "r_out_list": [
+        0.007,
+        0.008,
+        0.009,
+        0.01,
+        0.011,
+        0.012,
+        0.013,
+        0.014,
+        0.015
+      ],
+      "KI_list": [
+        11583899.702859076,
+        11817907.760128273,
+        12154335.041646512,
+        12230245.15921297,
+        12206277.075360967,
+        12114075.51783084,
+        12097554.720489394,
+        12154203.819722142,
+        12271256.669673976
+      ],
+      "best_idx": 3,
+      "best_r_out": 0.01,
+      "KI_ref": 12230245.15921297,
+      "KI_relative_span": 0.05620140543929473,
+      "E_elem_mean": 76368191811.44775,
+      "E_elem_std": 762814343.4298288,
+      "manifest_hash_sha256": "85aa40ed4827e9a88d8a7047c38e49ac6259f59f0c3f8128159e1a948a07f9c6",
+      "J_list": [
+        1757.1023896598751,
+        1828.8104054070884,
+        1934.4161070270568,
+        1958.6544228225403,
+        1950.9850437253413,
+        1921.6223688264708,
+        1916.3846458035023,
+        1934.3743381548031,
+        1971.8123040651228
+      ],
+      "J_ref": 1958.6544228225403,
+      "J_relative_span": 0.10962113168275883,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": true,
+        "window": [
+          0.0036,
+          0.0046
+        ],
+        "y_band": 0.004399498980978079,
+        "n_pairs": 3,
+        "n_inliers": 3,
+        "fit_model": "cod_vs_sqrt_r_through_origin",
+        "fit_r2": 0.6927689829195582,
+        "KI_ref": 18887673.58608012,
+        "KI_mean": 18897724.84671609,
+        "KI_std": 187105.53074730036,
+        "KI_relative_span": 0.022105256369512397,
+        "KI_pointwise_median": 18788591.06991262,
+        "KI_pointwise_mean": 18897724.84671609,
+        "samples": [
+          {
+            "r": 0.004464583333333334,
+            "uy_upper": 7.502205286199058e-05,
+            "uy_lower": 2.2682564374732228e-05,
+            "cod": 5.2339488487258356e-05,
+            "KI": 18743533.301695842
+          },
+          {
+            "r": 0.00444375,
+            "uy_upper": 7.520523733855538e-05,
+            "uy_lower": 2.2862483456929e-05,
+            "cod": 5.234275388162638e-05,
+            "KI": 18788591.06991262
+          },
+          {
+            "r": 0.00396458333333333,
+            "uy_upper": 7.39294484574491e-05,
+            "uy_lower": 2.350912488720101e-05,
+            "cod": 5.042032357024809e-05,
+            "KI": 19161050.16853981
+          }
+        ],
+        "crack_len": 0.02
+      },
+      "KI_ref_dcm": 18887673.58608012,
+      "KI_ref_dcm_delta_to_J": 0.5443413717550992
+    },
+    {
+      "run_name": "20_mm_plate_edge_crack",
+      "realization_id": 4,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.02,
+      "tip": [
+        0.02,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 74087167022.30428,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.004,
+      "r_out_list": [
+        0.007,
+        0.008,
+        0.009,
+        0.01,
+        0.011,
+        0.012,
+        0.013,
+        0.014,
+        0.015
+      ],
+      "KI_list": [
+        11533827.98716793,
+        11766935.73021134,
+        12100287.653632773,
+        12174379.925714288,
+        12149222.294084152,
+        12056631.101952286,
+        12039943.007228455,
+        12096193.900442848,
+        12212566.379854325
+      ],
+      "best_idx": 3,
+      "best_r_out": 0.01,
+      "KI_ref": 12174379.925714288,
+      "KI_relative_span": 0.055751372704640846,
+      "E_elem_mean": 74087167022.30428,
+      "E_elem_std": 740593890.196189,
+      "manifest_hash_sha256": "85aa40ed4827e9a88d8a7047c38e49ac6259f59f0c3f8128159e1a948a07f9c6",
+      "J_list": [
+        1795.5766617115914,
+        1868.8901471592246,
+        1976.2796606405293,
+        2000.5560008930304,
+        1992.2964837707273,
+        1962.044971766854,
+        1956.6172313441066,
+        1974.942662243531,
+        2013.125667734695
+      ],
+      "J_ref": 2000.5560008930304,
+      "J_relative_span": 0.10874427205536445,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": true,
+        "window": [
+          0.0036,
+          0.0046
+        ],
+        "y_band": 0.004399498980978079,
+        "n_pairs": 3,
+        "n_inliers": 3,
+        "fit_model": "cod_vs_sqrt_r_through_origin",
+        "fit_r2": 0.6912253619983357,
+        "KI_ref": 18666653.172030307,
+        "KI_mean": 18676602.68145128,
+        "KI_std": 185218.1029020905,
+        "KI_relative_span": 0.02214719472922769,
+        "KI_pointwise_median": 18568708.6961522,
+        "KI_pointwise_mean": 18676602.68145128,
+        "samples": [
+          {
+            "r": 0.004464583333333334,
+            "uy_upper": 7.60885203779987e-05,
+            "uy_lower": 2.2769935410930847e-05,
+            "cod": 5.3318584967067854e-05,
+            "KI": 18523842.672728863
+          },
+          {
+            "r": 0.00444375,
+            "uy_upper": 7.627528930736601e-05,
+            "uy_lower": 2.2952411918678003e-05,
+            "cod": 5.3322877388688005e-05,
+            "KI": 18568708.6961522
+          },
+          {
+            "r": 0.00396458333333333,
+            "uy_upper": 7.497357900754418e-05,
+            "uy_lower": 2.3607915128983733e-05,
+            "cod": 5.136566387856045e-05,
+            "KI": 18937256.675472774
+          }
+        ],
+        "crack_len": 0.02
+      },
+      "KI_ref_dcm": 18666653.172030307,
+      "KI_ref_dcm_delta_to_J": 0.5332734222137485
+    }
+  ],
+  "KI_ref_dcm_mean": 18804252.767655898,
+  "KI_ref_dcm_std": 124766.15092258237,
+  "KI_ref_dcm_cov": 0.006634996480008255
+}

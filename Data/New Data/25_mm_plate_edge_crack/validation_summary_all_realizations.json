@@ -1,0 +1,731 @@
+{
+  "run_name": "25_mm_plate_edge_crack",
+  "n_realizations": 5,
+  "realization_ids": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "KI_ref_mean": 10550387.139285143,
+  "KI_ref_std": 51096.96475667065,
+  "KI_ref_cov": 0.004843136472822626,
+  "KI_ref_min": 10501004.237009754,
+  "KI_ref_max": 10623143.552973738,
+  "summaries": [
+    {
+      "run_name": "25_mm_plate_edge_crack",
+      "realization_id": 0,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.025,
+      "tip": [
+        0.025,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 73465052942.14502,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.005,
+      "r_out_list": [
+        0.008,
+        0.009,
+        0.01,
+        0.011,
+        0.012,
+        0.013,
+        0.014,
+        0.015,
+        0.016,
+        0.017
+      ],
+      "KI_list": [
+        4853818.439743619,
+        6415478.762193575,
+        7952638.507704482,
+        9082691.74247954,
+        9881341.297018478,
+        10501004.237009754,
+        10918143.586275328,
+        11272398.826569438,
+        11529958.872330405,
+        11790793.589420822
+      ],
+      "best_idx": 5,
+      "best_r_out": 0.013,
+      "KI_ref": 10501004.237009754,
+      "KI_relative_span": 0.660601119008077,
+      "E_elem_mean": 73465052942.14502,
+      "E_elem_std": 733465069.5030959,
+      "manifest_hash_sha256": "61d3bbdd13cf2fedadd797a1ffe98c2a79da2f2107967a57f319d39897c8e973",
+      "J_list": [
+        320.69062094801365,
+        560.2441718863215,
+        860.8781550056225,
+        1122.9188026839438,
+        1329.0796360693662,
+        1501.0006196080353,
+        1622.6199341937684,
+        1729.624770097307,
+        1809.5672196999992,
+        1892.3666137940443
+      ],
+      "J_ref": 1501.0006196080353,
+      "J_relative_span": 1.047085505705155,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": true,
+        "window": [
+          0.0042,
+          0.0056
+        ],
+        "y_band": 0.004395661033230973,
+        "n_pairs": 4,
+        "n_inliers": 4,
+        "fit_model": "cod_vs_sqrt_r_through_origin",
+        "fit_r2": 0.15476104534175483,
+        "KI_ref": 18373774.479515586,
+        "KI_mean": 18396690.609374598,
+        "KI_std": 319857.11179291044,
+        "KI_relative_span": 0.0491406266826041,
+        "KI_pointwise_median": 18382662.547807746,
+        "KI_pointwise_mean": 18396690.609374598,
+        "samples": [
+          {
+            "r": 0.005235416666666666,
+            "uy_upper": 8.358517670443099e-05,
+            "uy_lower": 2.7132629227650585e-05,
+            "cod": 5.64525474767804e-05,
+            "KI": 17959269.274717335
+          },
+          {
+            "r": 0.004827083333333336,
+            "uy_upper": 8.362428859570176e-05,
+            "uy_lower": 2.82016301930522e-05,
+            "cod": 5.5422658402649565e-05,
+            "KI": 18362241.638052344
+          },
+          {
+            "r": 0.004739583333333332,
+            "uy_upper": 8.34357566991389e-05,
+            "uy_lower": 2.8395565440250376e-05,
+            "cod": 5.504019125888852e-05,
+            "KI": 18403083.45756315
+          },
+          {
+            "r": 0.004272916666666668,
+            "uy_upper": 8.314053204584752e-05,
+            "uy_lower": 2.957652251757966e-05,
+            "cod": 5.3564009528267854e-05,
+            "KI": 18862168.06716557
+          }
+        ],
+        "crack_len": 0.025
+      },
+      "KI_ref_dcm": 18373774.479515586,
+      "KI_ref_dcm_delta_to_J": 0.7497159380965707
+    },
+    {
+      "run_name": "25_mm_plate_edge_crack",
+      "realization_id": 1,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.025,
+      "tip": [
+        0.025,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 72695903709.76543,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.005,
+      "r_out_list": [
+        0.008,
+        0.009,
+        0.01,
+        0.011,
+        0.012,
+        0.013,
+        0.014,
+        0.015,
+        0.016,
+        0.017
+      ],
+      "KI_list": [
+        4906219.251956323,
+        6477603.03860264,
+        8024367.433388901,
+        9163363.99204943,
+        9972020.260622155,
+        10599877.768259514,
+        11021224.264730444,
+        11379119.504862249,
+        11639233.79906428,
+        11902671.82836016
+      ],
+      "best_idx": 5,
+      "best_r_out": 0.013,
+      "KI_ref": 10599877.768259514,
+      "KI_relative_span": 0.6600503071228006,
+      "E_elem_mean": 72695903709.76543,
+      "E_elem_std": 725937343.8205293,
+      "manifest_hash_sha256": "61d3bbdd13cf2fedadd797a1ffe98c2a79da2f2107967a57f319d39897c8e973",
+      "J_list": [
+        331.11889556210787,
+        577.1898963280603,
+        885.7510453836293,
+        1155.0477450011879,
+        1367.9063469005418,
+        1545.5810158248166,
+        1670.8972320976332,
+        1781.178224606657,
+        1863.540536893856,
+        1948.852540842783
+      ],
+      "J_ref": 1545.5810158248166,
+      "J_relative_span": 1.0466831752700803,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": true,
+        "window": [
+          0.0042,
+          0.0056
+        ],
+        "y_band": 0.004395661033230973,
+        "n_pairs": 4,
+        "n_inliers": 4,
+        "fit_model": "cod_vs_sqrt_r_through_origin",
+        "fit_r2": 0.1456806251966044,
+        "KI_ref": 18766970.94151143,
+        "KI_mean": 18790442.062502988,
+        "KI_std": 327628.9661157711,
+        "KI_relative_span": 0.049286854092020216,
+        "KI_pointwise_median": 18776549.691779114,
+        "KI_pointwise_mean": 18790442.062502988,
+        "samples": [
+          {
+            "r": 0.005235416666666666,
+            "uy_upper": 8.605036364596632e-05,
+            "uy_lower": 2.7785206469455234e-05,
+            "cod": 5.826515717651108e-05,
+            "KI": 18341851.953955136
+          },
+          {
+            "r": 0.004827083333333336,
+            "uy_upper": 8.609224459671649e-05,
+            "uy_lower": 2.888087754735839e-05,
+            "cod": 5.7211367049358096e-05,
+            "KI": 18756414.16809101
+          },
+          {
+            "r": 0.004739583333333332,
+            "uy_upper": 8.589540504674509e-05,
+            "uy_lower": 2.9083223883168222e-05,
+            "cod": 5.681218116357687e-05,
+            "KI": 18796685.215467215
+          },
+          {
+            "r": 0.004272916666666668,
+            "uy_upper": 8.558899484783009e-05,
+            "uy_lower": 3.0296995410489914e-05,
+            "cod": 5.5291999437340176e-05,
+            "KI": 19266816.912498593
+          }
+        ],
+        "crack_len": 0.025
+      },
+      "KI_ref_dcm": 18766970.94151143,
+      "KI_ref_dcm_delta_to_J": 0.7704893727838658
+    },
+    {
+      "run_name": "25_mm_plate_edge_crack",
+      "realization_id": 2,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.025,
+      "tip": [
+        0.025,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 73249736611.52113,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.005,
+      "r_out_list": [
+        0.008,
+        0.009,
+        0.01,
+        0.011,
+        0.012,
+        0.013,
+        0.014,
+        0.015,
+        0.016,
+        0.017
+      ],
+      "KI_list": [
+        4925207.568437367,
+        6499455.538823008,
+        8047611.098651581,
+        9186723.388791481,
+        9995323.667302955,
+        10623143.552973738,
+        11044227.560753444,
+        11401855.056395601,
+        11661657.10014128,
+        11924714.594117869
+      ],
+      "best_idx": 5,
+      "best_r_out": 0.013,
+      "KI_ref": 10623143.552973738,
+      "KI_relative_span": 0.6588922564000492,
+      "E_elem_mean": 73249736611.52113,
+      "E_elem_std": 733439866.9783384,
+      "manifest_hash_sha256": "61d3bbdd13cf2fedadd797a1ffe98c2a79da2f2107967a57f319d39897c8e973",
+      "J_list": [
+        331.16391558979797,
+        576.6972586559837,
+        884.1539559195311,
+        1152.1664176044856,
+        1363.9161017601903,
+        1540.6359690491722,
+        1665.1931878007742,
+        1774.7817909096268,
+        1856.5834173919143,
+        1941.2877742525814
+      ],
+      "J_ref": 1540.6359690491722,
+      "J_relative_span": 1.0451033800388918,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": true,
+        "window": [
+          0.0042,
+          0.0056
+        ],
+        "y_band": 0.004395661033230973,
+        "n_pairs": 4,
+        "n_inliers": 4,
+        "fit_model": "cod_vs_sqrt_r_through_origin",
+        "fit_r2": 0.14354076962803208,
+        "KI_ref": 18771672.558959693,
+        "KI_mean": 18795164.65408041,
+        "KI_std": 327923.7304465953,
+        "KI_relative_span": 0.049320045070466535,
+        "KI_pointwise_median": 18781407.4326566,
+        "KI_pointwise_mean": 18795164.65408041,
+        "samples": [
+          {
+            "r": 0.005235416666666666,
+            "uy_upper": 8.541948015261816e-05,
+            "uy_lower": 2.758174417615888e-05,
+            "cod": 5.783773597645928e-05,
+            "KI": 18346012.007176254
+          },
+          {
+            "r": 0.004827083333333336,
+            "uy_upper": 8.546255607493263e-05,
+            "uy_lower": 2.866893493742732e-05,
+            "cod": 5.679362113750531e-05,
+            "KI": 18761310.72889702
+          },
+          {
+            "r": 0.004739583333333332,
+            "uy_upper": 8.526656974341811e-05,
+            "uy_lower": 2.8869484140830115e-05,
+            "cod": 5.6397085602588e-05,
+            "KI": 18801504.136416182
+          },
+          {
+            "r": 0.004272916666666668,
+            "uy_upper": 8.496227491891069e-05,
+            "uy_lower": 3.0074049208482453e-05,
+            "cod": 5.488822571042824e-05,
+            "KI": 19271831.743832186
+          }
+        ],
+        "crack_len": 0.025
+      },
+      "KI_ref_dcm": 18771672.558959693,
+      "KI_ref_dcm_delta_to_J": 0.7670544001737543
+    },
+    {
+      "run_name": "25_mm_plate_edge_crack",
+      "realization_id": 3,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.025,
+      "tip": [
+        0.025,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 73839976850.12791,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.005,
+      "r_out_list": [
+        0.008,
+        0.009,
+        0.01,
+        0.011,
+        0.012,
+        0.013,
+        0.014,
+        0.015,
+        0.016,
+        0.017
+      ],
+      "KI_list": [
+        4851356.172259335,
+        6416193.680769727,
+        7954231.262658345,
+        9084382.085333442,
+        9883519.159484979,
+        10503504.747726278,
+        10920587.374810027,
+        11274936.92775253,
+        11532527.975666525,
+        11793414.688407453
+      ],
+      "best_idx": 5,
+      "best_r_out": 0.013,
+      "KI_ref": 10503504.747726278,
+      "KI_relative_span": 0.6609278219873117,
+      "E_elem_mean": 73839976850.12791,
+      "E_elem_std": 736296458.6736647,
+      "manifest_hash_sha256": "61d3bbdd13cf2fedadd797a1ffe98c2a79da2f2107967a57f319d39897c8e973",
+      "J_list": [
+        318.7386794268474,
+        557.5237575264497,
+        856.8501464764715,
+        1117.6330409722254,
+        1322.9141603629505,
+        1494.0905548959063,
+        1615.1038190724132,
+        1721.6175864033662,
+        1801.1815168831627,
+        1883.5952548447167
+      ],
+      "J_ref": 1494.0905548959063,
+      "J_relative_span": 1.0473639434303856,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": true,
+        "window": [
+          0.0042,
+          0.0056
+        ],
+        "y_band": 0.004395661033230973,
+        "n_pairs": 4,
+        "n_inliers": 4,
+        "fit_model": "cod_vs_sqrt_r_through_origin",
+        "fit_r2": 0.15563250782396698,
+        "KI_ref": 18388512.923817903,
+        "KI_mean": 18411441.054526187,
+        "KI_std": 320026.54287277156,
+        "KI_relative_span": 0.049128327282983865,
+        "KI_pointwise_median": 18397519.66267117,
+        "KI_pointwise_mean": 18411441.054526187,
+        "samples": [
+          {
+            "r": 0.005235416666666666,
+            "uy_upper": 8.330820777680072e-05,
+            "uy_lower": 2.7097281045692342e-05,
+            "cod": 5.621092673110838e-05,
+            "KI": 17973664.005796857
+          },
+          {
+            "r": 0.004827083333333336,
+            "uy_upper": 8.334797500948175e-05,
+            "uy_lower": 2.8161954040307703e-05,
+            "cod": 5.5186020969174046e-05,
+            "KI": 18377150.94259606
+          },
+          {
+            "r": 0.004739583333333332,
+            "uy_upper": 8.315992100647304e-05,
+            "uy_lower": 2.8355143436842037e-05,
+            "cod": 5.4804777569631e-05,
+            "KI": 18417888.38274628
+          },
+          {
+            "r": 0.004272916666666668,
+            "uy_upper": 8.28659125545191e-05,
+            "uy_lower": 2.953179803976926e-05,
+            "cod": 5.333411451474984e-05,
+            "KI": 18877060.88696556
+          }
+        ],
+        "crack_len": 0.025
+      },
+      "KI_ref_dcm": 18388512.923817903,
+      "KI_ref_dcm_delta_to_J": 0.7507025859914533
+    },
+    {
+      "run_name": "25_mm_plate_edge_crack",
+      "realization_id": 4,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.025,
+      "tip": [
+        0.025,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 73995328754.21318,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.005,
+      "r_out_list": [
+        0.008,
+        0.009,
+        0.01,
+        0.011,
+        0.012,
+        0.013,
+        0.014,
+        0.015,
+        0.016,
+        0.017
+      ],
+      "KI_list": [
+        4870887.453171119,
+        6428479.991865066,
+        7964381.384878022,
+        9096530.759023555,
+        9900226.691800557,
+        10524405.390456434,
+        10943531.809833732,
+        11299463.024656516,
+        11558145.517894045,
+        11819895.368400516
+      ],
+      "best_idx": 5,
+      "best_r_out": 0.013,
+      "KI_ref": 10524405.390456434,
+      "KI_relative_span": 0.6602755839803339,
+      "E_elem_mean": 73995328754.21318,
+      "E_elem_std": 739929049.1300677,
+      "manifest_hash_sha256": "61d3bbdd13cf2fedadd797a1ffe98c2a79da2f2107967a57f319d39897c8e973",
+      "J_list": [
+        320.6357074278008,
+        558.4859977185583,
+        857.2347999762062,
+        1118.2715617727447,
+        1324.6037310626773,
+        1496.8932591756582,
+        1618.4925520183426,
+        1725.4854704366726,
+        1805.3940709765104,
+        1888.091165646468
+      ],
+      "J_ref": 1496.8932591756582,
+      "J_relative_span": 1.0471390986701803,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": true,
+        "window": [
+          0.0042,
+          0.0056
+        ],
+        "y_band": 0.004395661033230973,
+        "n_pairs": 4,
+        "n_inliers": 4,
+        "fit_model": "cod_vs_sqrt_r_through_origin",
+        "fit_r2": 0.14782931413452982,
+        "KI_ref": 18512209.495749786,
+        "KI_mean": 18535347.194485754,
+        "KI_std": 322966.6132614621,
+        "KI_relative_span": 0.04925134634590354,
+        "KI_pointwise_median": 18521410.558517456,
+        "KI_pointwise_mean": 18535347.194485754,
+        "samples": [
+          {
+            "r": 0.005235416666666666,
+            "uy_upper": 8.345079611707802e-05,
+            "uy_lower": 2.698418085770928e-05,
+            "cod": 5.646661525936874e-05,
+            "KI": 18093408.2097025
+          },
+          {
+            "r": 0.004827083333333336,
+            "uy_upper": 8.34899741802298e-05,
+            "uy_lower": 2.804773679902571e-05,
+            "cod": 5.544223738120409e-05,
+            "KI": 18501315.152989767
+          },
+          {
+            "r": 0.004739583333333332,
+            "uy_upper": 8.329953057120827e-05,
+            "uy_lower": 2.8242747060554577e-05,
+            "cod": 5.505678351065369e-05,
+            "KI": 18541505.96404515
+          },
+          {
+            "r": 0.004272916666666668,
+            "uy_upper": 8.300253837252193e-05,
+            "uy_lower": 2.941923575850259e-05,
+            "cod": 5.358330261401934e-05,
+            "KI": 19005159.451205596
+          }
+        ],
+        "crack_len": 0.025
+      },
+      "KI_ref_dcm": 18512209.495749786,
+      "KI_ref_dcm_delta_to_J": 0.7589791355373596
+    }
+  ],
+  "KI_ref_dcm_mean": 18562628.07991088,
+  "KI_ref_dcm_std": 175487.55106858574,
+  "KI_ref_dcm_cov": 0.0094538095744376
+}

@@ -47,7 +47,6 @@ def main():
     parser.add_argument("--sigma-scale-mean", type=float, required=True)
     parser.add_argument("--sigma-scale-cov", type=float, required=True)
     parser.add_argument("--nsamples", type=int, default=1000)
-    parser.add_argument("--seed", type=int, default=12345)
     parser.add_argument("--run-name", default="stochastic_lifing")
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--outdir", required=True)

@@ -1,0 +1,70 @@
+{
+  "base_out_dir": "Data/New Data",
+  "run_name": "45_mm_plate_edge_crack",
+  "run_dir": "Data/New Data/45_mm_plate_edge_crack",
+  "geometry_type": "plate_edge_crack",
+  "W": 0.2,
+  "H": 0.1,
+  "a": 0.045,
+  "crack_gap": 5e-05,
+  "hole_radius": 0.01,
+  "hole_center": null,
+  "E_mean": 73100000000.0,
+  "nu": 0.33,
+  "plane_stress": true,
+  "thickness": 0.002,
+  "stochastic_E": true,
+  "E_mode": "kl_lognormal",
+  "E_rel_std": 0.01,
+  "E_rel_clip": 0.01,
+  "random_seed": 5,
+  "n_realizations": 5,
+  "kl_n_terms": 24,
+  "kl_landmarks": 250,
+  "kl_corr_len_x": 0.05,
+  "kl_corr_len_y": 0.05,
+  "kl_kernel": "squared_exponential",
+  "kl_chunk_size": 4000,
+  "kl_jitter": 1e-10,
+  "kl_var_tol": 0.99,
+  "fix_bottom_uy": true,
+  "traction_top": [
+    0.0,
+    50000000.0
+  ],
+  "traction_bottom": [
+    0.0,
+    0.0
+  ],
+  "msh_name": "mesh_q4.msh",
+  "vtk_name": "solution_q4.vtk",
+  "npz_name": "fields.npz",
+  "meta_name": "metadata.json",
+  "tip": [
+    0.045,
+    0.0
+  ],
+  "crack_start": [
+    0.0,
+    0.0
+  ],
+  "crack_dir": [
+    1.0,
+    0.0
+  ],
+  "realization_id": 3,
+  "realization_seed": 8,
+  "seed_derivation_rule": "realization_seed = random_seed + realization_id",
+  "manifest_hash_sha256": "ebbd6e9feafaf7d32d7ff6678a791a27a5430826f4e53f49a7923867ceaf2207",
+  "E_elem_mean": 73785842246.06125,
+  "E_elem_std": 735422329.8378872,
+  "kl": {
+    "n_elements": 3131,
+    "n_landmarks": 250,
+    "n_terms": 11,
+    "captured_var": 0.9911213448315993,
+    "kernel": "squared_exponential",
+    "corr_len_x": 0.05,
+    "corr_len_y": 0.05
+  }
+}

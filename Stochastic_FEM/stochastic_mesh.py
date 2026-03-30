@@ -61,7 +61,7 @@ class MeshConfig:
     H: float = 0.1
 
     # Crack geometry
-    a: float = 0.040
+    a: float = 0.055
     crack_gap: float = 5e-5
 
     # Hole geometry (used only for plate_hole_edge_crack)
@@ -408,7 +408,7 @@ def main() -> None:
     cfg = MeshConfig()
 
     if cfg.run_name is None:
-        cfg.run_name = f"40_mm_{cfg.geometry_type}"
+        cfg.run_name = f"55_mm_{cfg.geometry_type}"
 
     cfg.out_dir = cfg.base_out_dir / cfg.run_name
     cfg.out_dir.mkdir(parents=True, exist_ok=True)

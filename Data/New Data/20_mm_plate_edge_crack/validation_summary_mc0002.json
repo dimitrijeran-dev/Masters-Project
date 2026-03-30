@@ -1,0 +1,132 @@
+{
+  "run_name": "20_mm_plate_edge_crack",
+  "realization_id": 2,
+  "seed": 5,
+  "nsamples": 5,
+  "units": {
+    "r": "m",
+    "J_star": "J/m^2",
+    "KI": "Pa*sqrt(m)",
+    "KII": "Pa*sqrt(m)",
+    "E": "Pa"
+  },
+  "geometry_type": "plate_edge_crack",
+  "a": 0.02,
+  "tip": [
+    0.02,
+    0.0
+  ],
+  "crack_start": [
+    0.0,
+    0.0
+  ],
+  "crack_dir": [
+    1.0,
+    0.0
+  ],
+  "E_mean_scalar_used_in_post": 72977973335.7903,
+  "method": "corrected_J_star",
+  "interaction_settings": {
+    "requested": false,
+    "applied": false,
+    "formulation": "constant_tensor",
+    "modes": [
+      "I",
+      "II"
+    ],
+    "use_inhomogeneity_correction": true,
+    "force_mode_I_positive": true,
+    "sign_correction_factor": 1.0,
+    "take_abs_KI": true,
+    "E_tip_for_aux": null,
+    "interaction_impl_available": true
+  },
+  "r_in": 0.004,
+  "r_out_list": [
+    0.007,
+    0.008,
+    0.009,
+    0.01,
+    0.011,
+    0.012,
+    0.013,
+    0.014,
+    0.015
+  ],
+  "KI_list": [
+    11553288.07334847,
+    11788009.301113147,
+    12125294.869123546,
+    12202591.251757957,
+    12180798.305661151,
+    12090983.060242334,
+    12075305.430764968,
+    12132524.518577773,
+    12249036.614480754
+  ],
+  "best_idx": 3,
+  "best_r_out": 0.01,
+  "KI_ref": 12202591.251757957,
+  "KI_relative_span": 0.05701645878141266,
+  "E_elem_mean": 72977973335.7903,
+  "E_elem_std": 729120319.3026974,
+  "manifest_hash_sha256": "85aa40ed4827e9a88d8a7047c38e49ac6259f59f0c3f8128159e1a948a07f9c6",
+  "J_list": [
+    1829.0240082662679,
+    1904.097317744803,
+    2014.6185066924847,
+    2040.3859747151105,
+    2033.1045188183127,
+    2003.232820544371,
+    1998.041252465851,
+    2017.0216363312052,
+    2055.9477212736892
+  ],
+  "J_ref": 2040.3859747151105,
+  "J_relative_span": 0.1112160717724526,
+  "JK_relative_residual": 0.0,
+  "dcm": {
+    "available": true,
+    "window": [
+      0.0036,
+      0.0046
+    ],
+    "y_band": 0.004399498980978079,
+    "n_pairs": 3,
+    "n_inliers": 3,
+    "fit_model": "cod_vs_sqrt_r_through_origin",
+    "fit_r2": 0.690149543752813,
+    "KI_ref": 18727988.460880667,
+    "KI_mean": 18737982.453526266,
+    "KI_std": 186024.58138655633,
+    "KI_relative_span": 0.022151760749150075,
+    "KI_pointwise_median": 18629164.906313997,
+    "KI_pointwise_mean": 18737982.453526266,
+    "samples": [
+      {
+        "r": 0.004464583333333334,
+        "uy_upper": 7.77962053556552e-05,
+        "uy_lower": 2.348863107482558e-05,
+        "cod": 5.430757428082962e-05,
+        "KI": 18584962.267283265
+      },
+      {
+        "r": 0.00444375,
+        "uy_upper": 7.798546928083021e-05,
+        "uy_lower": 2.36758884920901e-05,
+        "cod": 5.430958078874011e-05,
+        "KI": 18629164.906313997
+      },
+      {
+        "r": 0.00396458333333333,
+        "uy_upper": 7.666863303498067e-05,
+        "uy_lower": 2.434998406109917e-05,
+        "cod": 5.23186489738815e-05,
+        "KI": 18999820.186981536
+      }
+    ],
+    "crack_len": 0.02
+  },
+  "KI_ref_dcm": 18727988.460880667,
+  "KI_ref_dcm_delta_to_J": 0.5347550429653729
+}

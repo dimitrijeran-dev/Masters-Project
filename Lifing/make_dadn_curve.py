@@ -13,6 +13,11 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.append(str(ROOT))
 from src.run_manifest import load_run_manifest, write_run_manifest
 
+# # 2024-T3, long-crack, R ~= 0, air
+# DELTA_K_TH_MPA_SQRTM = 3.715
+# PARIS_C_MPA = 9.6e-11      # m/cycle / (MPa*sqrt(m))^m
+# PARIS_M = 2.89
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--delta-k-csv", required=True)

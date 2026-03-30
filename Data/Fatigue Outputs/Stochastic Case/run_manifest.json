@@ -1,0 +1,14 @@
+{
+  "workflow": "Lifing.make_delta_k_curve",
+  "lifing": {
+    "ki_max_csv": "Data/Fatigue Outputs/ki_vs_a_stoch_mean.csv",
+    "ki_min_csv": null,
+    "R": 0.1
+  },
+  "rng": {
+    "seed_derivation_rule": "deterministic_no_rng"
+  },
+  "schema_version": "run_manifest/v1",
+  "written_at_utc": "2026-03-30T06:13:10.865598+00:00",
+  "manifest_hash_sha256": "ecc927ca48356c0d6d0b70f5c9881a683c4b63703312382fa609a7e80f532b3e"
+}

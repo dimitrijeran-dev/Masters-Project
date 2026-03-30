@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import sys
+from pathlib import Path
 import argparse
 import json
-from pathlib import Path
+
+THIS = Path(__file__).resolve()
+ROOT = THIS.parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from UQ.gpc_types import GPCConfig
 from UQ.study_runner import run_gpc_study
