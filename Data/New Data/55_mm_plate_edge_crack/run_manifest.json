@@ -22,6 +22,6 @@
     "seed_derivation_rule": "solver_seed_for_realization_i = random_seed + i"
   },
   "schema_version": "run_manifest/v1",
-  "written_at_utc": "2026-03-30T05:57:04.836191+00:00",
-  "manifest_hash_sha256": "cc4505e7197c4739b2deb42d76f84eae46c19962901b2d2cbc3dba513b9346a3"
+  "written_at_utc": "2026-04-01T16:35:39.546303+00:00",
+  "manifest_hash_sha256": "9754fb770eab817a20fcffae8ef7929d3f901b3a2d0323b6a1d18ef9cec38541"
 }

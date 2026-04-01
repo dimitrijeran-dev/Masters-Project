@@ -124,7 +124,7 @@ def main():
         )
 
         rows.append({
-            "a": float(a),
+            "a": float(a*1e3),  # convert m -> mm
             "KI": float(ki_val),
         })
 

@@ -1,0 +1,22 @@
+{
+  "run_name": "meshrun_0.001mm",
+  "W": 0.2,
+  "H": 0.1,
+  "a": 0.001,
+  "crack_gap": 5e-05,
+  "E": 73100000000.0,
+  "nu": 0.33,
+  "plane_stress": true,
+  "thickness": 0.005,
+  "traction_top": [
+    0.0,
+    50000000.0
+  ],
+  "traction_bottom": [
+    0.0,
+    0.0
+  ],
+  "J": 1269.2004312818788,
+  "KI": 9632162.349478196,
+  "manifest_hash_sha256": "6bbbc0740ca480de6b2e1eb1ccea0ecdefdec4392a7dc346868eb7a7f741b6ff"
+}

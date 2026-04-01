@@ -1,0 +1,25 @@
+{
+  "workflow": "FEM.mesh",
+  "geometry_mesh": {
+    "W": 0.2,
+    "H": 0.1,
+    "a": 0.001,
+    "crack_gap": 5e-05,
+    "lc_global": 0.006,
+    "lc_tip": 0.001,
+    "tip_refine_r": 0.005
+  },
+  "solver": {
+    "E": 73100000000.0,
+    "nu": 0.33,
+    "plane_stress": true,
+    "thickness": 0.005,
+    "traction": 50000000.0
+  },
+  "rng": {
+    "seed_derivation_rule": "deterministic_no_rng"
+  },
+  "schema_version": "run_manifest/v1",
+  "written_at_utc": "2026-04-01T16:08:54.527691+00:00",
+  "manifest_hash_sha256": "6bbbc0740ca480de6b2e1eb1ccea0ecdefdec4392a7dc346868eb7a7f741b6ff"
+}

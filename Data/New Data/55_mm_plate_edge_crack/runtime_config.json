@@ -53,7 +53,7 @@
           0.0
         ]
       },
-      "updated_at_utc": "2026-03-30T05:57:05.337432+00:00"
+      "updated_at_utc": "2026-04-01T16:35:39.897308+00:00"
     },
     "solver": {
       "fields_pattern": "fields_mc*.npz",
@@ -73,11 +73,11 @@
           0.0
         ]
       },
-      "updated_at_utc": "2026-03-30T05:57:22.899943+00:00"
+      "updated_at_utc": "2026-04-01T16:35:50.986921+00:00"
     },
     "validation": {
       "summary_pattern": "validation_summary_mc*.json",
-      "updated_at_utc": "2026-03-30T05:58:51.657597+00:00",
+      "updated_at_utc": "2026-04-01T16:36:54.432772+00:00",
       "validated_realization_ids": [
         0,
         1,

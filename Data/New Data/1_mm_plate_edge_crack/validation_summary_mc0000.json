@@ -1,0 +1,116 @@
+{
+  "run_name": "1_mm_plate_edge_crack",
+  "realization_id": 0,
+  "seed": 5,
+  "nsamples": 5,
+  "units": {
+    "r": "m",
+    "J_star": "J/m^2",
+    "KI": "Pa*sqrt(m)",
+    "KII": "Pa*sqrt(m)",
+    "E": "Pa"
+  },
+  "geometry_type": "plate_edge_crack",
+  "a": 0.001,
+  "tip": [
+    0.001,
+    0.0
+  ],
+  "crack_start": [
+    0.0,
+    0.0
+  ],
+  "crack_dir": [
+    1.0,
+    0.0
+  ],
+  "E_mean_scalar_used_in_post": 73620184299.98248,
+  "method": "corrected_J_star",
+  "interaction_settings": {
+    "requested": false,
+    "applied": false,
+    "formulation": "constant_tensor",
+    "modes": [
+      "I",
+      "II"
+    ],
+    "use_inhomogeneity_correction": true,
+    "force_mode_I_positive": true,
+    "sign_correction_factor": 1.0,
+    "take_abs_KI": true,
+    "E_tip_for_aux": null,
+    "interaction_impl_available": true
+  },
+  "r_in": 0.003,
+  "r_out_list": [
+    0.004,
+    0.006,
+    0.008,
+    0.01,
+    0.012,
+    0.014,
+    0.016,
+    0.018,
+    0.02,
+    0.022,
+    0.02,
+    0.022,
+    0.024,
+    0.026,
+    0.028
+  ],
+  "KI_list": [
+    138353.91770380316,
+    1083096.337806851,
+    2689396.043389632,
+    2556378.69234183,
+    3243845.733003936,
+    3995077.625293385,
+    4483576.216630713,
+    4914720.567364109,
+    5397328.12864899,
+    5869784.351738161,
+    5397328.12864899,
+    5869784.351738161,
+    6306659.326084374,
+    6701781.886171141,
+    7049693.142015244
+  ],
+  "best_idx": 8,
+  "best_r_out": 0.02,
+  "KI_ref": 5397328.12864899,
+  "KI_relative_span": 1.2805112195469621,
+  "E_elem_mean": 73620184299.98248,
+  "E_elem_std": 736729769.6140571,
+  "manifest_hash_sha256": "cb84c4dff398206bf0c2e6c34a830ecc194bb37a4914f675d5fc289b01bbe345",
+  "J_list": [
+    0.26000758794616724,
+    15.934457216115543,
+    98.24548996954262,
+    88.76739552879494,
+    142.9300298495768,
+    216.79713768556306,
+    273.0563076074962,
+    328.0958677969179,
+    395.69516438051807,
+    468.001658288682,
+    395.69516438051807,
+    468.001658288682,
+    540.2587922521199,
+    610.07563179684,
+    675.0617900394008
+  ],
+  "J_ref": 395.69516438051807,
+  "J_relative_span": 1.7053576672029664,
+  "JK_relative_residual": 0.0,
+  "dcm": {
+    "available": false,
+    "reason": "no_crack_face_nodes_in_window",
+    "window": [
+      0.013,
+      0.023
+    ],
+    "y_band": 0.004408971592380736,
+    "crack_len": 0.001
+  }
+}

@@ -1,0 +1,78 @@
+{
+  "metadata": {
+    "run_name": "stochastic_lifing",
+    "seed": 42,
+    "nsamples": 2000,
+    "KIC_MPa_sqrt_m": 25.0,
+    "manifest_hash_sha256": "f4fe813f2b6216cd7e535864bb9d04ed2277fe523626cb025b573691a7dbfd17",
+    "units": {
+      "a": "m",
+      "a_crit_m": "m",
+      "DeltaK_input": "Pa*sqrt(m)",
+      "DeltaK_used_in_life": "MPa*sqrt(m)",
+      "Kmax_used_for_failure": "MPa*sqrt(m)",
+      "KIC": "MPa*sqrt(m)",
+      "C": "(cycle^-1) * (MPa*sqrt(m))^-m",
+      "m": "unitless",
+      "sigma_scale": "unitless",
+      "life_cycles": "cycles"
+    }
+  },
+  "life_distribution": {
+    "mean": 213123946.56031904,
+    "median": 204121222.15342727,
+    "std": 66940947.70446334,
+    "cov": 0.3140939757584561,
+    "p5": 119909331.47661541,
+    "p95": 334809859.685059,
+    "skew": 0.8996338052578934
+  },
+  "n_failed_within_grid": 2000,
+  "fraction_failed_within_grid": 1.0,
+  "sampled_parameter_correlations": {
+    "C": {
+      "C": 1.0,
+      "m": 0.005326654699494659,
+      "sigma_scale": -0.005402268203047575,
+      "life_cycles": -0.3232681042858193,
+      "a_crit_m": 0.007375024455034261
+    },
+    "m": {
+      "C": 0.005326654699494659,
+      "m": 1.0,
+      "sigma_scale": 0.04437100559248689,
+      "life_cycles": -0.7797417110036494,
+      "a_crit_m": -0.04464679325399883
+    },
+    "sigma_scale": {
+      "C": -0.005402268203047575,
+      "m": 0.04437100559248689,
+      "sigma_scale": 1.0,
+      "life_cycles": -0.5259932521224367,
+      "a_crit_m": -0.9967918901854538
+    },
+    "life_cycles": {
+      "C": -0.3232681042858193,
+      "m": -0.7797417110036494,
+      "sigma_scale": -0.5259932521224367,
+      "life_cycles": 1.0,
+      "a_crit_m": 0.5303463661406334
+    },
+    "a_crit_m": {
+      "C": 0.007375024455034261,
+      "m": -0.04464679325399883,
+      "sigma_scale": -0.9967918901854538,
+      "life_cycles": 0.5303463661406334,
+      "a_crit_m": 1.0
+    }
+  },
+  "acrit_distribution": {
+    "mean": 32.324223045698496,
+    "median": 32.22045314261639,
+    "std": 1.7089446193430164,
+    "cov": 0.052868853705377215,
+    "p5": 29.68274306258751,
+    "p95": 35.25868209333461,
+    "skew": 0.43233850630614795
+  }
+}

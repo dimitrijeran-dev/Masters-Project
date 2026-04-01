@@ -1,0 +1,8 @@
+{
+  "n_points": 9,
+  "delta_k_th": 3.715,
+  "KIC": 25.0,
+  "a_crit_m": 0.04447437642204604,
+  "N_crit_cycles": 272005.5290220701,
+  "manifest_hash_sha256": "d1706a7bc24829452a0a2512714ec1c5ca41cdaa066cfe0b7cc258d76ee1ea85"
+}

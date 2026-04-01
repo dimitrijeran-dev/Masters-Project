@@ -5,11 +5,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Tuple
 from typing import Optional
+import sys
 
 import numpy as np
 import scipy.sparse as sp
 import scipy.sparse.linalg as spla
 import meshio
+
+ROOT = Path(__file__).resolve().parents[1]
+sys.path.append(str(ROOT))
 
 from src.configs.geometry import geometry_payload
 from src.configs.material import material_payload
@@ -31,13 +35,13 @@ class Config:
     # Geometry (m)
     W: float = 0.200
     H: float = 0.100
-    a: float = 0.055
+    a: float = 0.001
     crack_gap: float = 5e-5
 
     # Mesh sizing
     lc_global: float = 0.006
     lc_tip: float = 0.001
-    tip_refine_r: float = 0.010
+    tip_refine_r: float = 0.005
 
     # Material
     E: float = 73.1e9
@@ -107,7 +111,7 @@ def build_mesh_gmsh_quads(cfg: Config, msh_path: Path):
     # Goal: enforce UNIFORM small elements inside a disk around the crack tip
     # that fully contains the J-integral annulus (e.g., r_out up to 0.035 m).
     x_tip, y_tip = a, 0.0
-    r_uniform = 0.04      # must be >= your largest r_out (recommend 0.04 for r_out<=0.035)
+    r_uniform = rT     # must be >= your largest r_out (recommend 0.04 for r_out<=0.035)
     lcU = lcT              # uniform size inside disk (use lc_tip)
     lcG = lcG              # global outside
 
@@ -128,7 +132,7 @@ def build_mesh_gmsh_quads(cfg: Config, msh_path: Path):
     gmsh.model.mesh.field.add("Threshold", 12)
     gmsh.model.mesh.field.setNumber(12, "InField", 11)
     gmsh.model.mesh.field.setNumber(12, "SizeMin", lcU)
-    gmsh.model.mesh.field.setNumber(12, "SizeMax", lcU)     # keep it UNIFORM (important)
+    gmsh.model.mesh.field.setNumber(12, "SizeMax", lcG)     # keep it UNIFORM (important)
     gmsh.model.mesh.field.setNumber(12, "DistMin", 0.0)
     gmsh.model.mesh.field.setNumber(12, "DistMax", r_uniform)
 

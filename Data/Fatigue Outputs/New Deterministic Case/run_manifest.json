@@ -1,0 +1,14 @@
+{
+  "workflow": "Lifing.make_delta_k_curve",
+  "lifing": {
+    "ki_max_csv": "Data/Fatigue Outputs/New Deterministic Case/ki_vs_a.csv",
+    "ki_min_csv": null,
+    "R": 0.1
+  },
+  "rng": {
+    "seed_derivation_rule": "deterministic_no_rng"
+  },
+  "schema_version": "run_manifest/v1",
+  "written_at_utc": "2026-04-01T16:52:23.060391+00:00",
+  "manifest_hash_sha256": "f4fe813f2b6216cd7e535864bb9d04ed2277fe523626cb025b573691a7dbfd17"
+}

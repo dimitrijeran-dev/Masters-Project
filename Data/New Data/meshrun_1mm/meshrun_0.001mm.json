@@ -1,0 +1,22 @@
+{
+    "timestamp": "2026-04-01T16:10:28.076000",
+    "J_N_per_m": 1269.2004312818788,
+    "KI_Pa_sqrt_m": 9632162.349478196,
+    "material": {
+        "E": 73100000000.0,
+        "nu": 0.33,
+        "plane_stress": true,
+        "thickness": 0.005
+    },
+    "geometry": {
+        "W": 0.2,
+        "H": 0.1,
+        "a": 0.001
+    },
+    "loading": {
+        "traction": 50000000.0
+    },
+    "extra": {
+        "manifest_hash_sha256": "6bbbc0740ca480de6b2e1eb1ccea0ecdefdec4392a7dc346868eb7a7f741b6ff"
+    }
+}

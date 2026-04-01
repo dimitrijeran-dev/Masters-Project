@@ -1,0 +1,92 @@
+{
+  "geometry": {
+    "H": 0.1,
+    "W": 0.2,
+    "a": 0.001,
+    "crack_dir": [
+      1.0,
+      0.0
+    ],
+    "crack_gap": 5e-05,
+    "crack_start": [
+      0.0,
+      0.0
+    ],
+    "geometry_type": "plate_edge_crack",
+    "tip": [
+      0.001,
+      0.0
+    ]
+  },
+  "material": {
+    "E": 73100000000.0,
+    "nu": 0.33,
+    "plane_stress": true,
+    "thickness": 0.005
+  },
+  "run": {
+    "base_out_dir": "Data/New Data",
+    "name": "meshrun_0.001mm",
+    "run_dir": "Data/New Data/meshrun_0.001mm",
+    "runtime_config": "Data/New Data/meshrun_0.001mm/runtime_config.json"
+  },
+  "schema_version": 1,
+  "stages": {
+    "mesh": {
+      "mesh_path": "Data/New Data/meshrun_0.001mm/plate_edge_crack_q4.msh",
+      "mesh_sizing": {
+        "lc_global": 0.006,
+        "lc_tip": 0.001,
+        "tip_refine_r": 0.005
+      },
+      "resolved": {
+        "crack_dir": [
+          1.0,
+          0.0
+        ],
+        "crack_start": [
+          0.0,
+          0.0
+        ],
+        "tip": [
+          0.001,
+          0.0
+        ]
+      },
+      "updated_at_utc": "2026-04-01T16:09:00.757216+00:00"
+    },
+    "solver": {
+      "fields_npz": "Data/New Data/meshrun_0.001mm/fields.npz",
+      "mesh_path": "Data/New Data/meshrun_0.001mm/plate_edge_crack_q4.msh",
+      "metadata_json": "Data/New Data/meshrun_0.001mm/metadata.json",
+      "resolved": {
+        "J": 1269.2004312818788,
+        "KI": 9632162.349478196,
+        "crack_dir": [
+          1.0,
+          0.0
+        ],
+        "crack_start": [
+          0.0,
+          0.0
+        ],
+        "tip": [
+          0.001,
+          0.0
+        ]
+      },
+      "solution_vtk": "Data/New Data/meshrun_0.001mm/solution_q4.vtk",
+      "updated_at_utc": "2026-04-01T16:10:27.492550+00:00"
+    },
+    "validation": {
+      "resolved": {
+        "J_ref": 405.50512455041314,
+        "KI_ref": 5444485.7061650185,
+        "best_r_out": 0.02
+      },
+      "updated_at_utc": "2026-04-01T16:17:10.473457+00:00",
+      "validation_csv": "Data/New Data/meshrun_0.001mm/validation_line.csv",
+      "validation_summary": "Data/New Data/meshrun_0.001mm/validation_summary.json"
+    }
+  }
+}

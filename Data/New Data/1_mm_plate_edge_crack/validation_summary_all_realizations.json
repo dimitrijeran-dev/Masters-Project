@@ -1,0 +1,598 @@
+{
+  "run_name": "1_mm_plate_edge_crack",
+  "n_realizations": 5,
+  "realization_ids": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "KI_ref_mean": 5439786.659945264,
+  "KI_ref_std": 36635.82985885464,
+  "KI_ref_cov": 0.006734791665381832,
+  "KI_ref_min": 5397328.12864899,
+  "KI_ref_max": 5481944.980085786,
+  "summaries": [
+    {
+      "run_name": "1_mm_plate_edge_crack",
+      "realization_id": 0,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.001,
+      "tip": [
+        0.001,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 73620184299.98248,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.003,
+      "r_out_list": [
+        0.004,
+        0.006,
+        0.008,
+        0.01,
+        0.012,
+        0.014,
+        0.016,
+        0.018,
+        0.02,
+        0.022,
+        0.02,
+        0.022,
+        0.024,
+        0.026,
+        0.028
+      ],
+      "KI_list": [
+        138353.91770380316,
+        1083096.337806851,
+        2689396.043389632,
+        2556378.69234183,
+        3243845.733003936,
+        3995077.625293385,
+        4483576.216630713,
+        4914720.567364109,
+        5397328.12864899,
+        5869784.351738161,
+        5397328.12864899,
+        5869784.351738161,
+        6306659.326084374,
+        6701781.886171141,
+        7049693.142015244
+      ],
+      "best_idx": 8,
+      "best_r_out": 0.02,
+      "KI_ref": 5397328.12864899,
+      "KI_relative_span": 1.2805112195469621,
+      "E_elem_mean": 73620184299.98248,
+      "E_elem_std": 736729769.6140571,
+      "manifest_hash_sha256": "cb84c4dff398206bf0c2e6c34a830ecc194bb37a4914f675d5fc289b01bbe345",
+      "J_list": [
+        0.26000758794616724,
+        15.934457216115543,
+        98.24548996954262,
+        88.76739552879494,
+        142.9300298495768,
+        216.79713768556306,
+        273.0563076074962,
+        328.0958677969179,
+        395.69516438051807,
+        468.001658288682,
+        395.69516438051807,
+        468.001658288682,
+        540.2587922521199,
+        610.07563179684,
+        675.0617900394008
+      ],
+      "J_ref": 395.69516438051807,
+      "J_relative_span": 1.7053576672029664,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": false,
+        "reason": "no_crack_face_nodes_in_window",
+        "window": [
+          0.013,
+          0.023
+        ],
+        "y_band": 0.004408971592380736,
+        "crack_len": 0.001
+      }
+    },
+    {
+      "run_name": "1_mm_plate_edge_crack",
+      "realization_id": 1,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.001,
+      "tip": [
+        0.001,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 72753489552.71202,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.003,
+      "r_out_list": [
+        0.004,
+        0.006,
+        0.008,
+        0.01,
+        0.012,
+        0.014,
+        0.016,
+        0.018,
+        0.02,
+        0.022,
+        0.02,
+        0.022,
+        0.024,
+        0.026,
+        0.028
+      ],
+      "KI_list": [
+        148659.78680974816,
+        1085831.1835014191,
+        2732990.708674944,
+        2603650.5057040583,
+        3300245.524191337,
+        4058410.0598689285,
+        4551438.368968584,
+        4988572.258956425,
+        5478743.515376942,
+        5958602.862193502,
+        5478743.515376942,
+        5958602.862193502,
+        6402328.571577297,
+        6803507.647140985,
+        7156591.629223105
+      ],
+      "best_idx": 8,
+      "best_r_out": 0.02,
+      "KI_ref": 5478743.515376942,
+      "KI_relative_span": 1.2791129613467962,
+      "E_elem_mean": 72753489552.71202,
+      "E_elem_std": 729994267.9755298,
+      "manifest_hash_sha256": "cb84c4dff398206bf0c2e6c34a830ecc194bb37a4914f675d5fc289b01bbe345",
+      "J_list": [
+        0.303761817476918,
+        16.205811794221248,
+        102.66501661465864,
+        93.17760560394039,
+        149.70581599462193,
+        226.39040842311522,
+        284.73673708132384,
+        342.0571760313859,
+        412.57994210074236,
+        488.01711488513854,
+        412.57994210074236,
+        488.01711488513854,
+        563.4068055077506,
+        636.2267513116202,
+        703.977280847239
+      ],
+      "J_ref": 412.57994210074236,
+      "J_relative_span": 1.7055446647426729,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": false,
+        "reason": "no_crack_face_nodes_in_window",
+        "window": [
+          0.013,
+          0.023
+        ],
+        "y_band": 0.004408971592380736,
+        "crack_len": 0.001
+      }
+    },
+    {
+      "run_name": "1_mm_plate_edge_crack",
+      "realization_id": 2,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.001,
+      "tip": [
+        0.001,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 73182666421.02817,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.003,
+      "r_out_list": [
+        0.004,
+        0.006,
+        0.008,
+        0.01,
+        0.012,
+        0.014,
+        0.016,
+        0.018,
+        0.02,
+        0.022,
+        0.02,
+        0.022,
+        0.024,
+        0.026,
+        0.028
+      ],
+      "KI_list": [
+        160327.37997951143,
+        1084103.1849702252,
+        2741090.850864577,
+        2619016.8720245482,
+        3311014.996631984,
+        4064138.095768947,
+        4554959.7778116185,
+        4991770.685195917,
+        5481944.980085786,
+        5961625.937151458,
+        5481944.980085786,
+        5961625.937151458,
+        6405193.405362339,
+        6806211.8572934475,
+        7159139.455812936
+      ],
+      "best_idx": 8,
+      "best_r_out": 0.02,
+      "KI_ref": 5481944.980085786,
+      "KI_relative_span": 1.2767023567835774,
+      "E_elem_mean": 73182666421.02817,
+      "E_elem_std": 730388621.4742609,
+      "manifest_hash_sha256": "cb84c4dff398206bf0c2e6c34a830ecc194bb37a4914f675d5fc289b01bbe345",
+      "J_list": [
+        0.35124258281614973,
+        16.059536679096507,
+        102.66883430383663,
+        93.7277870757976,
+        149.80077720660725,
+        225.69850579719267,
+        283.505092013429,
+        340.4873830399475,
+        410.6398719035024,
+        485.64756591466204,
+        410.6398719035024,
+        485.64756591466204,
+        560.6040961129659,
+        632.9985242660019,
+        700.3472304891384
+      ],
+      "J_ref": 410.6398719035024,
+      "J_relative_span": 1.7046469079135516,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": false,
+        "reason": "no_crack_face_nodes_in_window",
+        "window": [
+          0.013,
+          0.023
+        ],
+        "y_band": 0.004408971592380736,
+        "crack_len": 0.001
+      }
+    },
+    {
+      "run_name": "1_mm_plate_edge_crack",
+      "realization_id": 3,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.001,
+      "tip": [
+        0.001,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 74153749154.4795,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.003,
+      "r_out_list": [
+        0.004,
+        0.006,
+        0.008,
+        0.01,
+        0.012,
+        0.014,
+        0.016,
+        0.018,
+        0.02,
+        0.022,
+        0.02,
+        0.022,
+        0.024,
+        0.026,
+        0.028
+      ],
+      "KI_list": [
+        144963.16392364647,
+        1084582.5160190111,
+        2694494.3802900207,
+        2565809.037133729,
+        3250112.8151649004,
+        3998662.6351384716,
+        4486219.598547447,
+        4917212.789331383,
+        5399648.909032526,
+        5871766.475057713,
+        5399648.909032526,
+        5871766.475057713,
+        6308315.177949635,
+        6703150.901573086,
+        7050828.397283954
+      ],
+      "best_idx": 8,
+      "best_r_out": 0.02,
+      "KI_ref": 5399648.909032526,
+      "KI_relative_span": 1.2789470852092224,
+      "E_elem_mean": 74153749154.4795,
+      "E_elem_std": 742442918.4737977,
+      "manifest_hash_sha256": "cb84c4dff398206bf0c2e6c34a830ecc194bb37a4914f675d5fc289b01bbe345",
+      "J_list": [
+        0.2833884885709053,
+        15.863246935816855,
+        97.9087375648345,
+        88.78008313945679,
+        142.45042808683135,
+        215.623661001187,
+        271.4113111727329,
+        326.0655312949002,
+        393.1858965091164,
+        464.94805631184914,
+        393.1858965091164,
+        464.94805631184914,
+        536.6531138088221,
+        605.9333819474965,
+        670.4203314707609
+      ],
+      "J_ref": 393.1858965091164,
+      "J_relative_span": 1.7043768582036414,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": false,
+        "reason": "no_crack_face_nodes_in_window",
+        "window": [
+          0.013,
+          0.023
+        ],
+        "y_band": 0.004408971592380736,
+        "crack_len": 0.001
+      }
+    },
+    {
+      "run_name": "1_mm_plate_edge_crack",
+      "realization_id": 4,
+      "seed": 5,
+      "nsamples": 5,
+      "units": {
+        "r": "m",
+        "J_star": "J/m^2",
+        "KI": "Pa*sqrt(m)",
+        "KII": "Pa*sqrt(m)",
+        "E": "Pa"
+      },
+      "geometry_type": "plate_edge_crack",
+      "a": 0.001,
+      "tip": [
+        0.001,
+        0.0
+      ],
+      "crack_start": [
+        0.0,
+        0.0
+      ],
+      "crack_dir": [
+        1.0,
+        0.0
+      ],
+      "E_mean_scalar_used_in_post": 74575157517.7748,
+      "method": "corrected_J_star",
+      "interaction_settings": {
+        "requested": false,
+        "applied": false,
+        "formulation": "constant_tensor",
+        "modes": [
+          "I",
+          "II"
+        ],
+        "use_inhomogeneity_correction": true,
+        "force_mode_I_positive": true,
+        "sign_correction_factor": 1.0,
+        "take_abs_KI": true,
+        "E_tip_for_aux": null,
+        "interaction_impl_available": true
+      },
+      "r_in": 0.003,
+      "r_out_list": [
+        0.004,
+        0.006,
+        0.008,
+        0.01,
+        0.012,
+        0.014,
+        0.016,
+        0.018,
+        0.02,
+        0.022,
+        0.02,
+        0.022,
+        0.024,
+        0.026,
+        0.028
+      ],
+      "KI_list": [
+        133006.86410638972,
+        1087098.1888430119,
+        2708065.7707340587,
+        2570296.1836249474,
+        3267681.562779905,
+        4027526.9852981577,
+        4520485.672651346,
+        4954924.542030122,
+        5441267.766582076,
+        5917533.953688132,
+        5441267.766582076,
+        5917533.953688132,
+        6357917.895441607,
+        6756148.324754274,
+        7106684.2005776595
+      ],
+      "best_idx": 8,
+      "best_r_out": 0.02,
+      "KI_ref": 5441267.766582076,
+      "KI_relative_span": 1.2816273037141441,
+      "E_elem_mean": 74575157517.7748,
+      "E_elem_std": 742128020.4678227,
+      "manifest_hash_sha256": "cb84c4dff398206bf0c2e6c34a830ecc194bb37a4914f675d5fc289b01bbe345",
+      "J_list": [
+        0.23722143523731834,
+        15.846865250054377,
+        98.33864872324946,
+        88.58744240643873,
+        143.1809620138812,
+        217.51175803334561,
+        274.01605838748,
+        329.21522440446313,
+        397.014178623602,
+        469.5559387146535,
+        397.014178623602,
+        469.5559387146535,
+        542.0453849600234,
+        612.0743382298656,
+        677.2357177348557
+      ],
+      "J_ref": 397.014178623602,
+      "J_relative_span": 1.7052249837693119,
+      "JK_relative_residual": 0.0,
+      "dcm": {
+        "available": false,
+        "reason": "no_crack_face_nodes_in_window",
+        "window": [
+          0.013,
+          0.023
+        ],
+        "y_band": 0.004408971592380736,
+        "crack_len": 0.001
+      }
+    }
+  ]
+}

@@ -42,7 +42,7 @@ from src.run_manifest import load_run_manifest, write_run_manifest
 # ----------------------------
 @dataclass
 class SolverConfig:
-    base_out_dir: Path = Path("Data/New Data")
+    base_out_dir: Path = Path("Data/Example_Mesh")
     run_name: Optional[str] = None
 
     # these get assigned in main()
@@ -56,7 +56,7 @@ class SolverConfig:
     # Geometry (used only for optional coordinate fallback / sanity)
     W: float = 0.200
     H: float = 0.100
-    a: float = 0.055
+    a: float = 0.001
     crack_gap: float = 5e-5
 
     # Material
@@ -629,7 +629,7 @@ def main():
     
     cfg = SolverConfig()
 
-    cfg.run_name = "meshrun_0.055mm"
+    cfg.run_name = "meshrun_0.001mm"
     cfg.run_dir = Path("Data/New Data") / cfg.run_name
 
     cfg.msh_path = cfg.run_dir / "plate_edge_crack_q4.msh"
